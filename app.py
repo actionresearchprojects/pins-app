@@ -1,4 +1,9 @@
-import streamlit as st
+#!/usr/bin/env python3
+"""
+Enhanced CLI for generating a pins.json entry with robust validation.
+Includes GDPR-masked coordinates and enriched climate zone selection.
+"""
+
 import json
 import math
 import random
@@ -40,16 +45,60 @@ CLIMATE_ZONES = {
 
 HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}){1,2}$')
 URL_RE = re.compile(
-    r'^(https?:\/\/)'                             
-    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'             
-    r'|localhost'                                 
-    r'|\d{1,3}(?:\.\d{1,3}){3})'                    
-    r'(?::\d+)?'                                   
-    r'(?:\/\S*)?$'                                
+    r'^(https?:\/\/)'                              # http:// or https://
+    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'             # domain...
+    r'|localhost'                                  # localhost...
+    r'|\d{1,3}(?:\.\d{1,3}){3})'                    # ...or IPv4
+    r'(?::\d+)?'                                    # optional port
+    r'(?:\/\S*)?$'                                 # optional path
 )
 
 def is_valid_url(url):
     return bool(URL_RE.match(url))
+
+def prompt_text(prompt_msg, required=True):
+    while True:
+        resp = input(prompt_msg).strip()
+        if not resp and required:
+            print("This field is required.")
+        else:
+            return resp
+
+def prompt_choice(prompt_msg, choices):
+    choices_lower = {c.lower(): c for c in choices}
+    while True:
+        resp = input(prompt_msg).strip().lower()
+        if resp in choices_lower:
+            return choices_lower[resp]
+        print(f"Invalid choice. Valid options: {', '.join(choices)}")
+
+def prompt_url(prompt_msg, required=True):
+    while True:
+        resp = input(prompt_msg).strip()
+        if not resp and not required:
+            return ''
+        if is_valid_url(resp):
+            return resp
+        print("Invalid URL. Please enter a valid http:// or https:// URL.")
+
+def prompt_hex_color(prompt_msg):
+    while True:
+        resp = input(prompt_msg).strip()
+        if HEX_COLOR_RE.match(resp):
+            return resp
+        print("Invalid hex code. Enter in form #RRGGBB or #RGB.")
+
+def prompt_float(prompt_msg, min_val=None, max_val=None):
+    while True:
+        resp = input(prompt_msg).strip()
+        try:
+            val = float(resp)
+            if (min_val is not None and val < min_val) or (max_val is not None and val > max_val):
+                print(f"Value must be between {min_val} and {max_val}.")
+            else:
+                return val
+        except ValueError:
+            print("Invalid number. Please enter a numeric value.")
 
 def generate_random_coordinate(lat, lon, radius_m=5000):
     lat_rad = math.radians(lat)
@@ -68,33 +117,29 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
     return new_lat, new_lon
 
 def main():
-    st.title("📍 pins.json Entry Generator")
-
-    st.markdown("### Step 1: Basic Details")
+    print("\n--- Generate a new pins.json entry ---\n")
     entry = {}
-    entry['id'] = st.text_input("Unique ID (e.g. 'house5')", max_chars=50)
-    entry['title'] = st.text_input("Title for popup (e.g. 'House 5')")
-    entry['link'] = st.text_input("Link URL (optional, must start with http/https)", value="")
+    entry['id'] = prompt_text("Enter a unique ID (e.g. 'site01'): ")
+    entry['title'] = prompt_text("Title for popup (e.g. 'House 5'): ")
+    entry['link'] = prompt_url("Link URL (http:// or https://, leave blank if none): ", required=False)
+    entry['address'] = prompt_text("Address text: ")
 
-    st.markdown("### Step 2: Location and Climate Zone")
-    entry['address'] = st.text_input("Address (for reference)", value="")
-
-    st.markdown("#### Available Climate Zones")
+    print("\nAvailable climate zones (input code like 'Aw'):")
     for code, (name, hexcol) in CLIMATE_ZONES.items():
+        r, g, b = int(hexcol[1:3], 16), int(hexcol[3:5], 16), int(hexcol[5:7], 16)
         label = f"{name} ({code})"
-        st.markdown(f"<span style='color:{hexcol}'>{label}</span>", unsafe_allow_html=True)
+        print(f"\x1b[38;2;{r};{g};{b}m{label}\x1b[0m")
 
-    selected_code = st.selectbox("Select climate zone code (e.g. Aw)", sorted(CLIMATE_ZONES.keys()))
-    zone_name, hexcol = CLIMATE_ZONES[selected_code]
-    entry['zoneText'] = f"{zone_name} ({selected_code})"
-    entry['zoneColour'] = f"#{hexcol.lstrip('#')}"
+    cz = prompt_choice("Enter climate zone code (e.g. Aw): ", CLIMATE_ZONES.keys())
+    zone_name, hexcol = CLIMATE_ZONES[cz]
+    entry['zoneText'] = f"{zone_name} ({cz})"
+    entry['zoneColour'] = f"#{hexcol}"
 
-    lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f")
-    lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f")
+    lat = prompt_float("Latitude (decimal degrees): ", -90, 90)
+    lon = prompt_float("Longitude (decimal degrees): ", -180, 180)
 
-    st.markdown("### Step 3: GDPR Masking")
-    gdpr_mask = st.radio("GDPR geomasking required?", options=["Yes", "No"])
-    if gdpr_mask == "Yes":
+    gdpr_resp = prompt_choice("GDPR geomasking required? (y/n): ", ['y', 'n', 'yes', 'no'])
+    if gdpr_resp.lower() in ('y', 'yes'):
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'] = mlat, mlon
         entry['gdpr'] = True
@@ -104,19 +149,12 @@ def main():
         entry['gdpr'] = False
         entry['radiusKm'] = 0
 
-    st.markdown("### Step 4: Image and Marker")
-    entry['imageUrl'] = st.text_input("Image URL (optional)", value="")
-    marker_colour = st.text_input("Marker colour hex (e.g. '#FF0000')", value="#FF0000")
-    if HEX_COLOR_RE.match(marker_colour):
-        entry['colour'] = marker_colour
-    else:
-        st.error("Invalid hex colour format.")
+    entry['imageUrl'] = prompt_url("Image URL (http:// or https://, leave blank if none): ", required=False)
+    entry['colour'] = prompt_hex_color("Marker colour hex (e.g. '#FF0000'): ")
 
-    st.markdown("### ✅ Output JSON")
-    if entry.get('id') and entry.get('title') and 'latitude' in entry:
-        st.code(json.dumps(entry, indent=2), language='json')
-    else:
-        st.info("Fill in all required fields to generate JSON.")
+    print("\nCopy and paste this JSON object into pins.json:\n")
+    print(json.dumps(entry, indent=2))
+    print("\n--- End of entry ---\n")
 
 if __name__ == "__main__":
     main()
