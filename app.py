@@ -75,7 +75,7 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
 
 
 def main():
-    st.title("📍 pins.json Entry Generator")
+    st.title("ARC People & Projects Map Entry Generator 🌍")
     entry = {}
 
     # Step 1: Basic Details
