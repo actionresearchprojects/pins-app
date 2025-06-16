@@ -48,10 +48,11 @@ URL_RE = re.compile(
     r'(/\S*)?$'
 )
 
+
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Great-circle offset
+# Great-circle offset to avoid large jumps
 def generate_random_coordinate(lat, lon, radius_m=5000):
     R = 6371000
     lat_rad = math.radians(lat)
@@ -75,59 +76,104 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
 
 def main():
     st.title("📍 pins.json Entry Generator")
-    red_star = "<span style='color:#dc3545'>*</span>"
     entry = {}
 
-    st.markdown("### Step 1: Basic Details")
-    st.markdown(f"Unique ID {red_star} (e.g. 'house5')", unsafe_allow_html=True)
-    entry['id'] = st.text_input("", key="id_input", label_visibility="hidden")
-
-    st.markdown(f"Title {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
-    entry['title'] = st.text_input("", key="title_input", label_visibility="hidden")
-
-    st.markdown("Link URL (optional, must start with http/https)", unsafe_allow_html=True)
-    entry['link'] = st.text_input("", key="link_input", label_visibility="hidden")
+    # Step 1: Basic Details
+    entry['id'] = st.text_input(
+        label="Unique ID * (e.g. 'house5')",
+        max_chars=50,
+        key="id_input",
+        label_visibility="visible"
+    )
+    entry['title'] = st.text_input(
+        label="Title * (e.g. 'House 5')",
+        key="title_input",
+        label_visibility="visible"
+    )
+    entry['link'] = st.text_input(
+        label="Link URL (optional, must start with http/https)",
+        key="link_input",
+        label_visibility="visible"
+    )
     if entry['link'] and not is_valid_url(entry['link']):
         st.error("Invalid URL format.")
 
-    st.markdown("### Step 2: Location and Climate Zones")
-    st.markdown("Address (for reference)", unsafe_allow_html=True)
-    entry['address'] = st.text_input("", key="address_input", label_visibility="hidden")
-
-    st.markdown("#### Available Climate Zones")
-    for code, (name, _) in CLIMATE_ZONES.items():
-        st.markdown(f"- <span style='color:{CLIMATE_ZONES[code][1]}'>{name} ({code})</span>", unsafe_allow_html=True)
-    st.markdown(f"Select between 1 and 3 climate zone codes {red_star}", unsafe_allow_html=True)
-    selected = st.multiselect("", sorted(CLIMATE_ZONES.keys()), key="zones_select", label_visibility="hidden")
-    if len(selected) < 1 or len(selected) > 3:
+    # Step 2: Location and Climate Zones
+    entry['address'] = st.text_input(
+        label="Address (for reference)",
+        key="address_input",
+        label_visibility="visible"
+    )
+    zone_options = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
+    selected_zones = st.multiselect(
+        label="Select between 1 and 3 climate zone codes *",
+        options=zone_options,
+        key="zones_select",
+        label_visibility="visible"
+    )
+    codes = [opt.split()[-1].strip('()') for opt in selected_zones]
+    if len(codes) < 1 or len(codes) > 3:
         st.error("Please select between 1 and 3 climate zones.")
     else:
-        entry['zones'] = [{ 'code': code, 'text': f"{CLIMATE_ZONES[code][0]} ({code})", 'colour': CLIMATE_ZONES[code][1] } for code in selected]
+        entry['zones'] = [
+            {'code': code,
+             'text': f"{CLIMATE_ZONES[code][0]} ({code})",
+             'colour': CLIMATE_ZONES[code][1]}
+            for code in codes
+        ]
 
-    st.markdown("### Step 3: Coordinates & GDPR Masking")
+    # Step 3: Coordinates & GDPR Masking
     col1, col2 = st.columns(2)
     with col1:
-        lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f", key="lat_input")
+        lat = st.number_input(
+            label="Latitude (decimal degrees)",
+            min_value=-90.0,
+            max_value=90.0,
+            format="%.6f",
+            key="lat_input",
+            label_visibility="visible"
+        )
     with col2:
-        lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
-
-    st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
-    gdpr = st.radio("", ["Yes", "No"], key="gdpr_radio", label_visibility="hidden")
+        lon = st.number_input(
+            label="Longitude (decimal degrees)",
+            min_value=-180.0,
+            max_value=180.0,
+            format="%.6f",
+            key="lon_input",
+            label_visibility="visible"
+        )
+    gdpr = st.radio(
+        label="GDPR geomasking required? *",
+        options=["Yes", "No"],
+        key="gdpr_radio",
+        label_visibility="visible"
+    )
     if gdpr == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = mlat, mlon, True, 5
     else:
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = lat, lon, False, 0
 
-    st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
-    entry['colour'] = st.text_input("", key="marker_colour_input", label_visibility="hidden")
+    # Step 4: Image and Marker
+    entry['colour'] = st.text_input(
+        label="Marker colour hex * (e.g. '#FF0000')",
+        key="marker_colour_input",
+        label_visibility="visible"
+    )
     if entry['colour'] and not HEX_COLOR_RE.match(entry['colour']):
         st.error("Invalid hex colour format.")
 
+    # Output JSON
     st.markdown("### ✅ Output JSON")
     link_ok = (not entry['link']) or is_valid_url(entry['link'])
-    required = all([entry.get('id'), entry.get('title'), entry.get('zones'), gdpr in ["Yes","No"], entry.get('colour')])
-    if required and link_ok:
+    mandatory = all([
+        entry.get('id'),
+        entry.get('title'),
+        entry.get('zones'),
+        gdpr in ["Yes", "No"],
+        entry.get('colour')
+    ])
+    if mandatory and link_ok:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
             "<small>Contact Archie at archwrth@gmail.com for him to add your entry to the map or refer to the official ARC SOP for adding pins to the map.</small>",
