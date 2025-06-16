@@ -78,30 +78,29 @@ def main():
 
     st.markdown("### Step 1: Basic Details")
     entry = {}
-    # Use Bootstrap danger red for asterisks
     red_star = "<span style='color:#dc3545'>*</span>"
 
     st.markdown(f"Unique ID {red_star} (e.g. 'house5')", unsafe_allow_html=True)
-    entry['id'] = st.text_input("", max_chars=50)
+    entry['id'] = st.text_input("", max_chars=50, key="id_input")
 
     st.markdown(f"Title {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
-    entry['title'] = st.text_input("")
+    entry['title'] = st.text_input("", key="title_input")
 
     st.markdown("Link URL (optional, must start with http/https)", unsafe_allow_html=True)
-    entry['link'] = st.text_input("")
+    entry['link'] = st.text_input("", key="link_input")
     if entry['link'] and not is_valid_url(entry['link']):
         st.error("Invalid URL format.")
 
     st.markdown("### Step 2: Location and Climate Zones")
     st.markdown("Address (for reference)", unsafe_allow_html=True)
-    entry['address'] = st.text_input("")
+    entry['address'] = st.text_input("", key="address_input")
 
     st.markdown("#### Available Climate Zones")
     for code, (name, hexcol) in CLIMATE_ZONES.items():
         st.markdown(f"<span style='color:{hexcol}'>{name} ({code})</span>", unsafe_allow_html=True)
 
     st.markdown(f"Select between 1 and 3 climate zone codes {red_star}", unsafe_allow_html=True)
-    selected_codes = st.multiselect("", sorted(CLIMATE_ZONES.keys()))
+    selected_codes = st.multiselect("", sorted(CLIMATE_ZONES.keys()), key="zones_select")
     if len(selected_codes) < 1 or len(selected_codes) > 3:
         st.error("Please select between 1 and 3 climate zones.")
     else:
@@ -114,14 +113,13 @@ def main():
                 'colour': hexcol
             })
 
-    # Coordinates input
     st.markdown("#### Coordinates")
-    lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f")
-    lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f")
+    lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f", key="lat_input")
+    lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
 
-    st.markdown("### Step 3: GDPR Masking")
+    st.markdown(f"### Step 3: GDPR Masking")
     st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
-    gdpr_mask = st.radio("", options=["Yes", "No"])
+    gdpr_mask = st.radio("", options=["Yes", "No"], key="gdpr_radio")
     if gdpr_mask == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'] = mlat, mlon
@@ -134,7 +132,7 @@ def main():
 
     st.markdown("### Step 4: Image and Marker")
     st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
-    marker_colour = st.text_input("")
+    marker_colour = st.text_input("", key="marker_colour_input")
     if marker_colour and not HEX_COLOR_RE.match(marker_colour):
         st.error("Invalid hex colour format.")
     else:
