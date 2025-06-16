@@ -40,41 +40,50 @@ CLIMATE_ZONES = {
 
 HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}){1,2}$')
 URL_RE = re.compile(
-    r'^(https?:\/\/)'                             
-    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'             
-    r'|localhost'                                 
-    r'|\d{1,3}(?:\.\d{1,3}){3})'                    
-    r'(?::\d+)?'                                   
-    r'(?:\/\S*)?$'                                
+    r'^(https?://)'               # http:// or https://
+    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'
+    r'|localhost'
+    r'|\d{1,3}(?:\.\d{1,3}){3})'
+    r'(?::\d+)?'
+    r'(/\S*)?$',
 )
 
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
+# Great-circle offset to avoid large jumps
 def generate_random_coordinate(lat, lon, radius_m=5000):
-    lat_rad = math.radians(lat)
     R = 6371000
+    lat_rad = math.radians(lat)
     d = random.uniform(0, radius_m)
-    ang = random.uniform(0, 2 * math.pi)
-    dLat = d * math.cos(ang) / R
-    dLon = d * math.sin(ang) / (R * math.cos(lat_rad))
-
-    new_lat = math.degrees(lat_rad + dLat)
-    new_lon = lon + math.degrees(dLon)
-
+    theta = random.uniform(0, 2 * math.pi)
+    # angular distance
+    ang_dist = d / R
+    new_lat_rad = math.asin(
+        math.sin(lat_rad) * math.cos(ang_dist) +
+        math.cos(lat_rad) * math.sin(ang_dist) * math.cos(theta)
+    )
+    new_lon_rad = math.radians(lon) + math.atan2(
+        math.sin(theta) * math.sin(ang_dist) * math.cos(lat_rad),
+        math.cos(ang_dist) - math.sin(lat_rad) * math.sin(new_lat_rad)
+    )
+    new_lat = math.degrees(new_lat_rad)
+    new_lon = math.degrees(new_lon_rad)
     new_lat = max(min(new_lat, 90), -90)
     new_lon = ((new_lon + 180) % 360) - 180
-
     return new_lat, new_lon
+
 
 def main():
     st.title("📍 pins.json Entry Generator")
 
     st.markdown("### Step 1: Basic Details")
     entry = {}
-    entry['id'] = st.text_input("Unique ID (e.g. 'house5')", max_chars=50)
-    entry['title'] = st.text_input("Title for popup (e.g. 'House 5')")
+    entry['id'] = st.text_input("Unique ID* (e.g. 'house5')", max_chars=50)
+    entry['title'] = st.text_input("Title* (e.g. 'House 5')")
     entry['link'] = st.text_input("Link URL (optional, must start with http/https)", value="")
+    if entry['link'] and not is_valid_url(entry['link']):
+        st.error("Invalid URL format.")
 
     st.markdown("### Step 2: Location and Climate Zones")
     entry['address'] = st.text_input("Address (for reference)", value="")
@@ -84,7 +93,7 @@ def main():
         st.markdown(f"<span style='color:{hexcol}'>{name} ({code})</span>", unsafe_allow_html=True)
 
     selected_codes = st.multiselect(
-        "Select between 1 and 3 climate zone codes", 
+        "Select between 1 and 3 climate zone codes*", 
         sorted(CLIMATE_ZONES.keys())
     )
     if len(selected_codes) < 1 or len(selected_codes) > 3:
@@ -92,10 +101,10 @@ def main():
     else:
         entry['zones'] = []
         for code in selected_codes:
-            zone_name, hexcol = CLIMATE_ZONES[code]
+            name, hexcol = CLIMATE_ZONES[code]
             entry['zones'].append({
                 'code': code,
-                'text': f"{zone_name} ({code})",
+                'text': f"{name} ({code})",
                 'colour': hexcol
             })
 
@@ -103,7 +112,7 @@ def main():
     lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f")
 
     st.markdown("### Step 3: GDPR Masking")
-    gdpr_mask = st.radio("GDPR geomasking required?", options=["Yes", "No"])
+    gdpr_mask = st.radio("GDPR geomasking required?*", options=["Yes", "No"] )
     if gdpr_mask == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'] = mlat, mlon
@@ -116,21 +125,23 @@ def main():
 
     st.markdown("### Step 4: Image and Marker")
     entry['imageUrl'] = st.text_input("Image URL (optional)", value="")
-    marker_colour = st.text_input("Marker colour hex (e.g. '#FF0000')", value="#FF0000")
-    if HEX_COLOR_RE.match(marker_colour):
-        entry['colour'] = marker_colour
-    else:
+    marker_colour = st.text_input("Marker colour hex* (e.g. '#FF0000')", value="#FF0000")
+    if marker_colour and not HEX_COLOR_RE.match(marker_colour):
         st.error("Invalid hex colour format.")
+    else:
+        entry['colour'] = marker_colour
 
     st.markdown("### ✅ Output JSON")
-    if entry.get('id') and entry.get('title') and 'latitude' in entry and 'zones' in entry:
+    if (entry.get('id') and entry.get('title') and 'zones' in entry and 
+        (gdpr_mask == "Yes" or gdpr_mask == "No") and entry.get('colour') and 
+        all((not entry['link']) or is_valid_url(entry['link']))):
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
             "<small>Contact Archie at archwrth@gmail.com for him to add your entry to the map or refer to the official ARC SOP for adding pins to the map.</small>",
             unsafe_allow_html=True
         )
     else:
-        st.info("Fill in all required fields, including at least one climate zone, to generate JSON.")
+        st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
     main()
