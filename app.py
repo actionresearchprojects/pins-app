@@ -48,6 +48,7 @@ URL_RE = re.compile(
     r'(/\S*)?$',
 )
 
+
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
@@ -57,7 +58,6 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
     lat_rad = math.radians(lat)
     d = random.uniform(0, radius_m)
     theta = random.uniform(0, 2 * math.pi)
-    # angular distance
     ang_dist = d / R
     new_lat_rad = math.asin(
         math.sin(lat_rad) * math.cos(ang_dist) +
@@ -112,7 +112,7 @@ def main():
     lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f")
 
     st.markdown("### Step 3: GDPR Masking")
-    gdpr_mask = st.radio("GDPR geomasking required?*", options=["Yes", "No"] )
+    gdpr_mask = st.radio("GDPR geomasking required?*", options=["Yes", "No"])
     if gdpr_mask == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'] = mlat, mlon
@@ -132,9 +132,9 @@ def main():
         entry['colour'] = marker_colour
 
     st.markdown("### ✅ Output JSON")
-    if (entry.get('id') and entry.get('title') and 'zones' in entry and 
-        (gdpr_mask == "Yes" or gdpr_mask == "No") and entry.get('colour') and 
-        all((not entry['link']) or is_valid_url(entry['link']))):
+    valid_link = (not entry['link']) or is_valid_url(entry['link'])
+    mandatory_filled = entry.get('id') and entry.get('title') and 'zones' in entry and gdpr_mask in ["Yes", "No"] and entry.get('colour')
+    if mandatory_filled and valid_link:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
             "<small>Contact Archie at archwrth@gmail.com for him to add your entry to the map or refer to the official ARC SOP for adding pins to the map.</small>",
