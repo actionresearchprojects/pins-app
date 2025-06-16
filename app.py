@@ -45,9 +45,8 @@ URL_RE = re.compile(
     r'|localhost'
     r'|\d{1,3}(?:\.\d{1,3}){3})'
     r'(?::\d+)?'
-    r'(/\S*)?$',
+    r'(/\S*)?$'
 )
-
 
 def is_valid_url(url):
     return bool(URL_RE.match(url))
@@ -79,23 +78,30 @@ def main():
 
     st.markdown("### Step 1: Basic Details")
     entry = {}
-    entry['id'] = st.text_input("Unique ID* (e.g. 'house5')", max_chars=50)
-    entry['title'] = st.text_input("Title* (e.g. 'House 5')")
-    entry['link'] = st.text_input("Link URL (optional, must start with http/https)", value="")
+    # Use Bootstrap danger red for asterisks
+    red_star = "<span style='color:#dc3545'>*</span>"
+
+    st.markdown(f"Unique ID {red_star} (e.g. 'house5')", unsafe_allow_html=True)
+    entry['id'] = st.text_input("", max_chars=50)
+
+    st.markdown(f"Title {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
+    entry['title'] = st.text_input("")
+
+    st.markdown("Link URL (optional, must start with http/https)", unsafe_allow_html=True)
+    entry['link'] = st.text_input("")
     if entry['link'] and not is_valid_url(entry['link']):
         st.error("Invalid URL format.")
 
     st.markdown("### Step 2: Location and Climate Zones")
-    entry['address'] = st.text_input("Address (for reference)", value="")
+    st.markdown("Address (for reference)", unsafe_allow_html=True)
+    entry['address'] = st.text_input("")
 
     st.markdown("#### Available Climate Zones")
     for code, (name, hexcol) in CLIMATE_ZONES.items():
         st.markdown(f"<span style='color:{hexcol}'>{name} ({code})</span>", unsafe_allow_html=True)
 
-    selected_codes = st.multiselect(
-        "Select between 1 and 3 climate zone codes*", 
-        sorted(CLIMATE_ZONES.keys())
-    )
+    st.markdown(f"Select between 1 and 3 climate zone codes {red_star}", unsafe_allow_html=True)
+    selected_codes = st.multiselect("", sorted(CLIMATE_ZONES.keys()))
     if len(selected_codes) < 1 or len(selected_codes) > 3:
         st.error("Please select between 1 and 3 climate zones.")
     else:
@@ -108,11 +114,14 @@ def main():
                 'colour': hexcol
             })
 
+    # Coordinates input
+    st.markdown("#### Coordinates")
     lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f")
     lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f")
 
     st.markdown("### Step 3: GDPR Masking")
-    gdpr_mask = st.radio("GDPR geomasking required?*", options=["Yes", "No"])
+    st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
+    gdpr_mask = st.radio("", options=["Yes", "No"])
     if gdpr_mask == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'] = mlat, mlon
@@ -124,8 +133,8 @@ def main():
         entry['radiusKm'] = 0
 
     st.markdown("### Step 4: Image and Marker")
-    entry['imageUrl'] = st.text_input("Image URL (optional)", value="")
-    marker_colour = st.text_input("Marker colour hex* (e.g. '#FF0000')", value="#FF0000")
+    st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
+    marker_colour = st.text_input("")
     if marker_colour and not HEX_COLOR_RE.match(marker_colour):
         st.error("Invalid hex colour format.")
     else:
@@ -133,7 +142,10 @@ def main():
 
     st.markdown("### ✅ Output JSON")
     valid_link = (not entry['link']) or is_valid_url(entry['link'])
-    mandatory_filled = entry.get('id') and entry.get('title') and 'zones' in entry and gdpr_mask in ["Yes", "No"] and entry.get('colour')
+    mandatory_filled = (
+        entry.get('id') and entry.get('title') and 'zones' in entry and
+        gdpr_mask in ["Yes", "No"] and entry.get('colour')
+    )
     if mandatory_filled and valid_link:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
