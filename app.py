@@ -40,12 +40,12 @@ CLIMATE_ZONES = {
 
 HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}){1,2}$')
 URL_RE = re.compile(
-    r'^(https?:\/\/)'
-    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'
-    r'|localhost'
-    r'|\d{1,3}(?:\.\d{1,3}){3})'
-    r'(?::\d+)?'
-    r'(?:\/\S*)?$'
+    r'^(https?:\/\/)'                             
+    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'             
+    r'|localhost'                                 
+    r'|\d{1,3}(?:\.\d{1,3}){3})'                    
+    r'(?::\d+)?'                                   
+    r'(?:\/\S*)?$'                                
 )
 
 def is_valid_url(url):
@@ -68,7 +68,7 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
     return new_lat, new_lon
 
 def main():
-    st.title("ARC People & Projects Map Entry Generator 🌍")
+    st.title("📍 pins.json Entry Generator")
 
     st.markdown("### Step 1: Basic Details")
     entry = {}
@@ -76,28 +76,26 @@ def main():
     entry['title'] = st.text_input("Title for popup (e.g. 'House 5')")
     entry['link'] = st.text_input("Link URL (optional, must start with http/https)", value="")
 
-    st.markdown("### Step 2: Location and Climate Zone")
+    st.markdown("### Step 2: Location and Climate Zones")
     entry['address'] = st.text_input("Address (for reference)", value="")
 
     st.markdown("#### Available Climate Zones")
     for code, (name, hexcol) in CLIMATE_ZONES.items():
-        label = f"{name} ({code})"
-        st.markdown(f"<span style='color:{hexcol}'>{label}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span style='color:{hexcol}'>{name} ({code})</span>", unsafe_allow_html=True)
 
     selected_codes = st.multiselect(
-        "Select between 1 and 3 climate zone codes",
-        sorted(CLIMATE_ZONES.keys()),
-        max_selections=3
+        "Select between 1 and 3 climate zone codes", 
+        sorted(CLIMATE_ZONES.keys())
     )
-    if not 1 <= len(selected_codes) <= 3:
-        st.error("Please select at least 1 and at most 3 climate zones.")
+    if len(selected_codes) < 1 or len(selected_codes) > 3:
+        st.error("Please select between 1 and 3 climate zones.")
     else:
         entry['zones'] = []
         for code in selected_codes:
-            name, hexcol = CLIMATE_ZONES[code]
+            zone_name, hexcol = CLIMATE_ZONES[code]
             entry['zones'].append({
                 'code': code,
-                'text': f"{name} ({code})",
+                'text': f"{zone_name} ({code})",
                 'colour': hexcol
             })
 
@@ -126,12 +124,13 @@ def main():
 
     st.markdown("### ✅ Output JSON")
     if entry.get('id') and entry.get('title') and 'latitude' in entry and 'zones' in entry:
-        st.code(json.dumps(entry, indent=2), language="json")
-        st.caption(
-            "Contact Archie at archwrth@gmail.com to add your entry to the map or refer to the official ARC SOP for adding pins to the map."
+        st.code(json.dumps(entry, indent=2), language='json')
+        st.markdown(
+            "<small>Contact Archie at archwrth@gmail.com for him to add your entry to the map or refer to the official ARC SOP for adding pins to the map.</small>",
+            unsafe_allow_html=True
         )
     else:
-        st.info("Fill in all required fields to generate JSON.")
+        st.info("Fill in all required fields, including at least one climate zone, to generate JSON.")
 
 if __name__ == "__main__":
     main()
