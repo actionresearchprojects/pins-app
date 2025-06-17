@@ -1,12 +1,17 @@
+import os
 import streamlit as st
 import json
 import math
 import random
 import re
+import requests
 
-st.set_page_config(
-    page_title="ARC People & Projects Map Entry Generator 🌍"
-)
+# Page configuration
+st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
+
+# Environment-based secrets (for Render.com)
+RECAPTCHA_SITE_KEY = os.getenv('RECAPTCHA_SITE_KEY')
+RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY')
 
 # Köppen climate zones with concise names and colours
 CLIMATE_ZONES = {
@@ -52,10 +57,11 @@ URL_RE = re.compile(
     r'(/\S*)?$'
 )
 
+# Validate URLs
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Great-circle offset for GDPR geomasking
+# Generate a random nearby coordinate for GDPR masking
 def generate_random_coordinate(lat, lon, radius_m=5000):
     R = 6371000
     lat_rad = math.radians(lat)
@@ -76,7 +82,18 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
     new_lon = ((new_lon + 180) % 360) - 180
     return new_lat, new_lon
 
+# Verify reCAPTCHA response server-side
+def verify_recaptcha(token):
+    if not RECAPTCHA_SECRET_KEY:
+        return False
+    resp = requests.post(
+        'https://www.google.com/recaptcha/api/siteverify',
+        data={'secret': RECAPTCHA_SECRET_KEY, 'response': token}
+    )
+    result = resp.json()
+    return result.get('success', False)
 
+# Main app
 def main():
     st.title("ARC People & Projects Map Entry Generator 🌍")
     entry = {}
@@ -94,98 +111,88 @@ def main():
     if entry['link'] and not is_valid_url(entry['link']):
         st.error("Invalid URL format.")
 
-    # Step 2: Location and Köppen Zones
+    # Step 2: Location & Köppen Zones
     st.markdown("Address (for reference)", unsafe_allow_html=True)
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
 
     zone_labels = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
     st.markdown(f"Select between 1 and 3 Köppen zones {red_star}", unsafe_allow_html=True)
-    selected_zones = st.multiselect(
-        "",
-        options=zone_labels,
-        key="zones_select",
-        label_visibility="collapsed"
-    )
-    codes = [opt.split()[-1].strip('()') for opt in selected_zones]
+    selected = st.multiselect("", options=zone_labels, key="zones_select", label_visibility="collapsed")
+    codes = [opt.split()[-1].strip('()') for opt in selected]
     if len(codes) < 1 or len(codes) > 3:
         st.error("Please select between 1 and 3 zones.")
     else:
-        entry['zones'] = [{
-            'code': code,
-            'text': f"{CLIMATE_ZONES[code][0]} ({code})",
-            'colour': CLIMATE_ZONES[code][1]
-        } for code in codes]
+        entry['zones'] = [
+            {'code': code,
+             'text': f"{CLIMATE_ZONES[code][0]} ({code})",
+             'colour': CLIMATE_ZONES[code][1]}
+            for code in codes
+        ]
 
     # Step 3: Coordinates & GDPR Masking
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("Latitude (decimal degrees)", unsafe_allow_html=True)
-        lat = st.number_input(
-            "",
-            min_value=-90.0,
-            max_value=90.0,
-            format="%.6f",
-            key="lat_input",
-            label_visibility="collapsed"
-        )
+        lat = st.number_input("", -90.0, 90.0, format="%.6f", key="lat_input", label_visibility="collapsed")
     with col2:
         st.markdown("Longitude (decimal degrees)", unsafe_allow_html=True)
-        lon = st.number_input(
-            "",
-            min_value=-180.0,
-            max_value=180.0,
-            format="%.6f",
-            key="lon_input",
-            label_visibility="collapsed"
-        )
+        lon = st.number_input("", -180.0, 180.0, format="%.6f", key="lon_input", label_visibility="collapsed")
 
     st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
-    gdpr = st.radio(
-        "",
-        ["Yes", "No"],
-        key="gdpr_radio",
-        label_visibility="collapsed"
-    )
-    if gdpr == "Yes":
+    token = st.text_input("Enter CAPTCHA token (no manual entry needed on Render)", key="captcha_token", label_visibility="collapsed")
+    gdpr_choice = st.radio("", ["Yes", "No"], key="gdpr_radio", label_visibility="collapsed")
+    captcha_ok = verify_recaptcha(token)
+    if gdpr_choice == "Yes":
+        if not captcha_ok:
+            st.error("Complete CAPTCHA to mask coordinates.")
+            st.stop()
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = mlat, mlon, True, 5
     else:
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = lat, lon, False, 0
 
-    # Step 4: Image and Marker
+    # Step 4: Image & Marker
     st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
-    entry['colour'] = st.text_input(
-        "",
-        key="marker_colour_input",
-        label_visibility="collapsed"
-    )
+    entry['colour'] = st.text_input("", key="marker_colour_input", label_visibility="collapsed")
     if entry['colour'] and not HEX_COLOR_RE.match(entry['colour']):
         st.error("Invalid hex colour format.")
 
-    # Output JSON
+    # Output JSON & Email
     st.markdown("### ✅ Output JSON")
     link_ok = (not entry['link']) or is_valid_url(entry['link'])
     mandatory = all([
-        entry.get('id'),
-        entry.get('title'),
-        entry.get('zones'),
-        gdpr in ["Yes", "No"],
-        entry.get('colour')
+        entry.get('id'), entry.get('title'), entry.get('zones'), gdpr_choice in ["Yes","No"], entry.get('colour')
     ])
     if mandatory and link_ok:
         json_output = json.dumps(entry, indent=2)
         st.code(json_output, language='json')
+
+        # Centered reCAPTCHA widget and Email button
         form_html = f"""
-        <form action="mailto:archwrth@gmail.com" method="post" enctype="text/plain">
-          <input type="hidden" name="body" value='{json_output}' />
-          <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
-          <br/>
-          <input type="submit" value="Email your entry to Archie" />
-        </form>
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-        """
+<style>
+  .submit-btn {{
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 4px;
+  }}
+  .submit-btn:hover {{ opacity: 0.85; }}
+  .recaptcha-wrapper {{ text-align: center; margin: 20px 0; }}
+</style>
+<div class="recaptcha-wrapper">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <div class="g-recaptcha" data-sitekey="{RECAPTCHA_SITE_KEY}"></div>
+  <div style="margin-top:15px;">
+    <a href="mailto:archwrth@gmail.com?subject=Map%20Entry&body={json_output}" class="submit-btn">Email your entry to Archie</a>
+  </div>
+</div>
+"""
         import streamlit.components.v1 as components
-        components.html(form_html, height=200)
+        components.html(form_html, height=250)
+
         st.markdown(
             "Alternatively, copy and paste the JSON above into an email to archwrth@gmail.com."
         )
