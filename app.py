@@ -110,12 +110,14 @@ def main():
         unsafe_allow_html=True
     )
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
-    # Validate ID format
+        # Validate ID format
     if entry['id']:
         if not re.match(r'^[a-z0-9_-]+$', entry['id']):
             st.error("ID must use only lowercase letters, numbers, hyphens or underscores (no spaces or capitals).")
             valid_id = False
         else:
+            valid_id = True
+    else:
         valid_id = False
 
     # Listing type
