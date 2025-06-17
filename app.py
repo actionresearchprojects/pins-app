@@ -104,12 +104,21 @@ def main():
     entry = {}
     red_star = "<span style='color:#dc3545'>*</span>"
 
-    # Unique ID
+        # Unique ID
     st.markdown(
         f"Please provide a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')",
         unsafe_allow_html=True
     )
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
+    # Validate ID format
+    if entry['id']:
+        if not re.match(r'^[a-z0-9_-]+$', entry['id']):
+            st.error("ID must use only lowercase letters, numbers, hyphens or underscores (no spaces or capitals).")
+            valid_id = False
+        else:
+            valid_id = True
+    else:
+        valid_id = False("", key="id_input", label_visibility="collapsed")
 
     # Listing type
     st.markdown(
