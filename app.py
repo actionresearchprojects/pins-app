@@ -7,7 +7,20 @@ import re
 # Page configuration
 st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
 
-# Köppen climate zones with concise names
+# Inject custom CSS for font and sizing
+st.markdown(
+    """
+    <style>
+    html, body, [class*="css"] {
+        font-family: 'Ubuntu', sans-serif;
+        font-size: 18px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Köppen zones with concise names
 CLIMATE_ZONES = {
     'Af': ('Tropical rainforest', '#0000fe'),
     'Am': ('Tropical monsoon', '#0078ff'),
@@ -43,7 +56,7 @@ CLIMATE_ZONES = {
 
 HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}){1,2}$')
 URL_RE = re.compile(
-    r'^(https?://)'               # http:// or https://
+    r'^(https?://)'               # must start with https:// or http://
     r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'
     r'|localhost'
     r'|\d{1,3}(?:\.\d{1,3}){3})'
@@ -54,23 +67,23 @@ URL_RE = re.compile(
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Jitter coordinates for GDPR masking
+# Generate jittered coordinate
 def generate_random_coordinate(lat, lon, radius_m=5000):
     R = 6371000
     lat_rad = math.radians(lat)
     d = random.uniform(0, radius_m)
     theta = random.uniform(0, 2 * math.pi)
     ang = d / R
-    new_lat = math.degrees(math.asin(
+    new_lat_rad = math.asin(
         math.sin(lat_rad) * math.cos(ang) +
         math.cos(lat_rad) * math.sin(ang) * math.cos(theta)
-    ))
-    new_lon = math.degrees(
-        math.radians(lon) + math.atan2(
-            math.sin(theta) * math.sin(ang) * math.cos(lat_rad),
-            math.cos(ang) - math.sin(lat_rad) * math.sin(math.radians(new_lat))
-        )
     )
+    new_lon_rad = math.radians(lon) + math.atan2(
+        math.sin(theta) * math.sin(ang) * math.cos(lat_rad),
+        math.cos(ang) - math.sin(lat_rad) * math.sin(new_lat_rad)
+    )
+    new_lat = math.degrees(new_lat_rad)
+    new_lon = math.degrees(new_lon_rad)
     new_lat = max(min(new_lat, 90), -90)
     new_lon = ((new_lon + 180) % 360) - 180
     return new_lat, new_lon
@@ -81,65 +94,76 @@ def main():
     entry = {}
     red_star = "<span style='color:#dc3545'>*</span>"
 
-    # Basic Details
-    st.markdown(f"Unique ID {red_star} (e.g. 'house5')", unsafe_allow_html=True)
+    # Unique ID
+    st.markdown(f"Give your project a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')", unsafe_allow_html=True)
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
 
-    st.markdown(f"Title {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
+    # Listing type
+    listing_type = st.radio("Are you listing a Person or a Project?", ["Person", "Project"], key="listing_type")
+    entry['type'] = listing_type
+
+    # Title
+    st.markdown(f"This will appear publicly as your project title. {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
     entry['title'] = st.text_input("", key="title_input", label_visibility="collapsed")
 
-    st.markdown("Link URL (optional, must start with http/https)", unsafe_allow_html=True)
-    entry['link'] = st.text_input("", key="link_input", label_visibility="collapsed")
-    if entry['link'] and not is_valid_url(entry['link']):
-        st.error("Invalid URL format.")
+    # Link (conditional)
+    if listing_type == "Project":
+        st.markdown("Link to further information you'd like to share (optional, must start with https://)", unsafe_allow_html=True)
+        entry['link'] = st.text_input("", key="link_input", label_visibility="collapsed")
+        if entry['link'] and not entry['link'].startswith("https://"):
+            st.error("Link must start with https://")
+    else:
+        entry['link'] = "https://actionresearchprojects.framer.website/people"
 
-    # Location & Climate Zones
-    st.markdown("Address (for reference)", unsafe_allow_html=True)
+    # Address
+    st.markdown("Address/Description of Location (optional, will be displayed publicly) (e.g. iHelp Eco Village, Mkuranga, Tanzania)", unsafe_allow_html=True)
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
 
+    # Climate zones
     zone_labels = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
-    st.markdown(f"Select between 1 and 3 Köppen zones {red_star}", unsafe_allow_html=True)
+    st.markdown(f"Select up to 3 climate zones {red_star}", unsafe_allow_html=True)
     selected = st.multiselect("", options=zone_labels, key="zones_select", label_visibility="collapsed")
     codes = [opt.split()[-1].strip('()') for opt in selected]
-    if len(codes) < 1 or len(codes) > 3:
-        st.error("Please select between 1 and 3 zones.")
-    else:
-        entry['zones'] = [{
+    if len(codes) > 3:
+        st.error("Please select at most 3 climate zones.")
+    entry['zones'] = []
+    for code in codes:
+        entry['zones'].append({
             'code': code,
             'text': f"{CLIMATE_ZONES[code][0]} ({code})",
             'colour': CLIMATE_ZONES[code][1]
-        } for code in codes]
+        })
 
-    # Coordinates & GDPR
+    # Coordinates header
+    st.markdown("Precise location coordinates", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("Latitude (decimal degrees)", unsafe_allow_html=True)
-        lat = st.number_input("", -90.0, 90.0, format="%.6f", key="lat_input", label_visibility="collapsed")
+        lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f", key="lat_input")
     with col2:
-        st.markdown("Longitude (decimal degrees)", unsafe_allow_html=True)
-        lon = st.number_input("", -180.0, 180.0, format="%.6f", key="lon_input", label_visibility="collapsed")
+        lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
 
-    st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
-    gdpr = st.radio("", ["Yes", "No"], key="gdpr_radio", label_visibility="collapsed")
-    if gdpr == "Yes":
-        mlat, mlon = generate_random_coordinate(lat, lon)
-        entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = mlat, mlon, True, 5
+    # Privacy masking
+    st.markdown(f"For privacy purposes, you may choose to randomise the publicly shown coordinates in order to mask the location of your building. {red_star}", unsafe_allow_html=True)
+    mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
+    if mask_choice == "Yes":
+        radius_km = st.slider("Select mask radius (km)", 2, 10, 5, key="radius_slider")
+        mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
+        entry['latitude'], entry['longitude'] = mlat, mlon
+        entry['radiusKm'] = radius_km
+        entry['mask'] = True
     else:
-        entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = lat, lon, False, 0
+        entry['latitude'], entry['longitude'] = lat, lon
+        entry['radiusKm'] = 0
+        entry['mask'] = False
 
-    # Image & Marker
-    st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
-    entry['colour'] = st.text_input("", key="marker_colour_input", label_visibility="collapsed")
-    if entry['colour'] and not HEX_COLOR_RE.match(entry['colour']):
-        st.error("Invalid hex colour format.")
+    # Marker colour by type
+    entry['colour'] = "#ffff00" if listing_type == "Project" else "#add8e6"
 
-    # Output JSON
+    # Output
     st.markdown("### ✅ Output JSON")
-    link_ok = (not entry['link']) or is_valid_url(entry['link'])
-    mandatory = all([
-        entry.get('id'), entry.get('title'), entry.get('zones'), gdpr in ["Yes", "No"], entry.get('colour')
-    ])
-    if mandatory and link_ok:
+    link_ok = listing_type == "Person" or entry['link'].startswith("https://")
+    mandatory_fields = all([entry.get('id'), entry.get('title'), entry.get('zones'), mask_choice in ["Yes", "No"]])
+    if mandatory_fields and link_ok:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
             "<small>For inclusion on the public map, please email archwrth@gmail.com or see the ARC SOP for adding new entries.</small>",
