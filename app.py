@@ -131,12 +131,23 @@ def main():
     link_ok = (not entry['link']) or is_valid_url(entry['link'])
     mandatory = all([entry.get('id'), entry.get('title'), entry.get('zones'), gdpr in ["Yes", "No"], entry.get('colour')])
     if mandatory and link_ok:
-        st.code(json.dumps(entry, indent=2), language='json')
-        st.markdown(
-            "<small>For inclusion on the public map, please email archwrth@gmail.com or see the ARC SOP for adding new entries.</small>",
-            unsafe_allow_html=True
-        )
+        json_output = json.dumps(entry, indent=2)
+        st.code(json_output, language='json')
+        # Embedded form with reCAPTCHA and mailto
+        form_html = f"""
+        <form action="mailto:archwrth@gmail.com" method="post" enctype="text/plain">
+          <input type="hidden" name="body" value='{json_output}' />
+          <div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
+          <br/>
+          <input type="submit" value="Email your entry to Archie" />
+        </form>
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        """
+        import streamlit.components.v1 as components
+        components.html(form_html, height=200)
+        st.markdown("Alternatively, copy and paste the JSON above into an email to archwrth@gmail.com.")
     else:
+        st.info("Fill in all required fields (marked *) to generate JSON.")
         st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
