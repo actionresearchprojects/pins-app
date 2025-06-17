@@ -99,14 +99,14 @@ def main():
     entry = {}
     red_star = "<span style='color:#dc3545'>*</span>"
 
-    # Unique ID
+        # Unique ID
     st.markdown(
         f"Please provide a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')",
         unsafe_allow_html=True
     )
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
 
-        # Listing type (default Project)
+    # Listing type (default Project)
     st.markdown(
         "<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold'>Are you listing a Project or a Person?</h2>",
         unsafe_allow_html=True
@@ -118,6 +118,16 @@ def main():
 
     # Title
     if listing_type == "Project":
+        st.markdown(
+            f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')",
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f"Please enter your full name to be displayed publicly. {red_star}",
+            unsafe_allow_html=True
+        )
+    entry['title'] = st.text_input("", key="title_input", label_visibility="collapsed")
         st.markdown(
             f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')",
             unsafe_allow_html=True
