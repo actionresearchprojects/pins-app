@@ -7,13 +7,17 @@ import re
 # Page configuration
 st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
 
-# Inject custom CSS for font and sizing
+# Inject custom CSS for Ubuntu font and sizing globally
 st.markdown(
     """
     <style>
-    html, body, [class*="css"] {
-        font-family: 'Ubuntu', sans-serif;
-        font-size: 18px;
+    * {
+        font-family: 'Ubuntu', sans-serif !important;
+        font-size: 18px !important;
+    }
+    a {
+        color: inherit !important;
+        text-decoration: none !important;
     }
     </style>
     """,
@@ -95,21 +99,40 @@ def main():
     red_star = "<span style='color:#dc3545'>*</span>"
 
     # Unique ID
-    st.markdown(f"Please provide a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')", unsafe_allow_html=True)
+    st.markdown(
+        f"Please provide a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')",
+        unsafe_allow_html=True
+    )
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
 
     # Listing type (default Project)
-    st.markdown(f"<p style='font-size:20px; font-weight:bold'>Are you listing a Project or a Person?</p>", unsafe_allow_html=True)
-    listing_type = st.radio("", ["Project", "Person"], index=0, key="listing_type", label_visibility="collapsed")
+    st.markdown(
+        f"<p style='font-size:20px; font-weight:bold'>Are you listing a Project or a Person?</p>",
+        unsafe_allow_html=True
+    )
+    listing_type = st.radio(
+        "", ["Project", "Person"], index=0, key="listing_type", label_visibility="collapsed"
+    )
     entry['type'] = listing_type
 
     # Title
-    st.markdown(f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
+    if listing_type == "Project":
+        st.markdown(
+            f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')",
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f"Please enter your full name to be displayed publicly. {red_star}",
+            unsafe_allow_html=True
+        )
     entry['title'] = st.text_input("", key="title_input", label_visibility="collapsed")
 
     # Link (optional)
     if listing_type == "Project":
-        st.markdown("Link to further information you'd like to share (optional, must start with https://, e.g. https://google.com)", unsafe_allow_html=True)
+        st.markdown(
+            "Link to further information you'd like to share (optional, must start with `https://`, e.g. `https://google.com`)"
+        )
         entry['link'] = st.text_input("", key="link_input", label_visibility="collapsed")
         if entry['link'] and not entry['link'].startswith("https://"):
             st.error("Link must start with https://")
@@ -117,7 +140,10 @@ def main():
         entry['link'] = "https://actionresearchprojects.framer.website/people"
 
     # Address/Description
-    st.markdown("Address/description of location (optional — will be displayed publicly). For example: iHelp Eco Village, Mkuranga, Tanzania", unsafe_allow_html=True)
+    st.markdown(
+        "Address/description of location (optional, will be displayed publicly). e.g. iHelp Eco Village, Mkuranga, Tanzania",
+        unsafe_allow_html=True
+    )
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
 
     # Climate zones
@@ -137,15 +163,30 @@ def main():
     st.markdown("**Precise location coordinates**", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
-        lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f", key="lat_input")
+        lat = st.number_input(
+            "Latitude (decimal degrees)",
+            -90.0,
+            90.0,
+            format="%.6f",
+            key="lat_input"
+        )
     with col2:
-        lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
+        lon = st.number_input(
+            "Longitude (decimal degrees)",
+            -180.0,
+            180.0,
+            format="%.6f",
+            key="lon_input"
+        )
 
     # Privacy masking
-    st.markdown(f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}", unsafe_allow_html=True)
+    st.markdown(
+        f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}",
+        unsafe_allow_html=True
+    )
     mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
     if mask_choice == "Yes":
-        radius_km = st.slider("Select mask radius (km)", 2, 10, 5, key="radius_slider")
+        radius_km = st.slider("Select mask radius (km) *", 2, 10, 5, key="radius_slider")
         mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
         entry['latitude'], entry['longitude'] = mlat, mlon
         entry['radiusKm'] = radius_km
@@ -161,7 +202,12 @@ def main():
     # Output
     st.markdown("### ✅ Output JSON")
     link_ok = listing_type == "Person" or entry['link'] == "" or entry['link'].startswith("https://")
-    mandatory_fields = all([entry.get('id'), entry.get('title'), entry.get('zones'), mask_choice in ["Yes", "No"]])
+    mandatory_fields = all([
+        entry.get('id'),
+        entry.get('title'),
+        entry.get('zones'),
+        mask_choice in ["Yes", "No"]
+    ])
     if mandatory_fields and link_ok:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
