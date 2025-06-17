@@ -181,7 +181,7 @@ def main():
             key="lon_input"
         )
 
-        # Privacy masking
+            # Privacy masking
     st.markdown(
         f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}",
         unsafe_allow_html=True
@@ -190,7 +190,15 @@ def main():
     if mask_choice == "Yes":
         # Mask radius selection with red asterisk
         st.markdown(f"Select mask radius (km) {red_star}", unsafe_allow_html=True)
-        radius_km = st.slider("", 2, 10, 5, key="mask_radius", help="Distance in km to jitter coordinates")
+        radius_km = st.slider(
+            label="",
+            min_value=2,
+            max_value=10,
+            value=5,
+            step=1,
+            key="mask_radius",
+            help="Distance in km to randomise coordinates"
+        )
         mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
         entry['latitude'], entry['longitude'] = mlat, mlon
         entry['radiusKm'] = radius_km
@@ -200,31 +208,40 @@ def main():
         entry['radiusKm'] = 0
         entry['mask'] = False
 
-        # Image URL (optional)
+    # Image URL (optional) (optional)
     st.markdown("Image URL (optional, will appear publicly, must start with https://, e.g. https://example.com)", unsafe_allow_html=True)
     entry['imageUrl'] = st.text_input("", key="image_input", label_visibility="collapsed")
-    if entry['imageUrl'] and not is_valid_url(entry['imageUrl']):(entry['imageUrl']):
+    if entry['imageUrl'] and not is_valid_url(entry['imageUrl']):
         st.error("Image URL must start with http:// or https://")
 
     # Marker colour by type
     entry['colour'] = "#ffff00" if listing_type == "Project" else "#add8e6"
 
-    # Output
+        # Output
     st.markdown("### ✅ Output JSON")
-    link_ok = listing_type == "Person" or entry['link'] == "" or entry['link'].startswith("https://")
+    # Validate link and image
+    valid_link = (listing_type == "Person" or entry['link'] == "" or entry['link'].startswith("https://"))
+    valid_image = (entry['imageUrl'] == "" or is_valid_url(entry['imageUrl']))
     mandatory_fields = all([
         entry.get('id'),
         entry.get('title'),
         entry.get('zones'),
-        mask_choice in ["Yes", "No"]
+        mask_choice in ["Yes", "No"],
+        valid_link,
+        valid_image
     ])
-    if mandatory_fields and link_ok:
+    if not valid_link:
+        st.error("Link must start with https:// or be left blank.")
+    if entry['imageUrl'] and not valid_image:
+        st.error("Image URL must start with http:// or https:// or be left blank.")
+    if mandatory_fields:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
             "<small>For inclusion on the public map, please click the button in the top right corner of the box to copy the text, and email it archwrth@gmail.com.</small>",
             unsafe_allow_html=True
         )
     else:
+        st.info("Fill in all required fields (marked *) to generate JSON.")
         st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
