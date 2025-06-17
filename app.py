@@ -116,9 +116,7 @@ def main():
             st.error("ID must use only lowercase letters, numbers, hyphens or underscores (no spaces or capitals).")
             valid_id = False
         else:
-            valid_id = True
-    else:
-        valid_id = False("", key="id_input", label_visibility="collapsed")
+        valid_id = False
 
     # Listing type
     st.markdown(
