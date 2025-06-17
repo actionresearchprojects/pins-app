@@ -100,7 +100,12 @@ def main():
 
     zone_labels = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
     st.markdown(f"Select between 1 and 3 Köppen zones {red_star}", unsafe_allow_html=True)
-    selected_zones = st.multiselect("", options=zone_labels, key="zones_select", label_visibility="collapsed")
+    selected_zones = st.multiselect(
+        "",
+        options=zone_labels,
+        key="zones_select",
+        label_visibility="collapsed"
+    )
     codes = [opt.split()[-1].strip('()') for opt in selected_zones]
     if len(codes) < 1 or len(codes) > 3:
         st.error("Please select between 1 and 3 zones.")
@@ -115,13 +120,32 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("Latitude (decimal degrees)", unsafe_allow_html=True)
-        lat = st.number_input("", min_value=-90.0, max_value=90.0, format="%.6f", key="lat_input", label_visibility="collapsed")
+        lat = st.number_input(
+            "",
+            min_value=-90.0,
+            max_value=90.0,
+            format="%.6f",
+            key="lat_input",
+            label_visibility="collapsed"
+        )
     with col2:
         st.markdown("Longitude (decimal degrees)", unsafe_allow_html=True)
-        lon = st.number_input("", min_value=-180.0, max_value=180.0, format="%.6f", key="lon_input", label_visibility="collapsed")
+        lon = st.number_input(
+            "",
+            min_value=-180.0,
+            max_value=180.0,
+            format="%.6f",
+            key="lon_input",
+            label_visibility="collapsed"
+        )
 
     st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
-    gdpr = st.radio("", ["Yes", "No"], key="gdpr_radio", label_visibility="collapsed")
+    gdpr = st.radio(
+        "",
+        ["Yes", "No"],
+        key="gdpr_radio",
+        label_visibility="collapsed"
+    )
     if gdpr == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = mlat, mlon, True, 5
@@ -130,7 +154,11 @@ def main():
 
     # Step 4: Image and Marker
     st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
-    entry['colour'] = st.text_input("", key="marker_colour_input", label_visibility="collapsed")
+    entry['colour'] = st.text_input(
+        "",
+        key="marker_colour_input",
+        label_visibility="collapsed"
+    )
     if entry['colour'] and not HEX_COLOR_RE.match(entry['colour']):
         st.error("Invalid hex colour format.")
 
@@ -138,12 +166,15 @@ def main():
     st.markdown("### ✅ Output JSON")
     link_ok = (not entry['link']) or is_valid_url(entry['link'])
     mandatory = all([
-        entry.get('id'), entry.get('title'), entry.get('zones'), gdpr in ["Yes", "No"], entry.get('colour')
+        entry.get('id'),
+        entry.get('title'),
+        entry.get('zones'),
+        gdpr in ["Yes", "No"],
+        entry.get('colour')
     ])
     if mandatory and link_ok:
         json_output = json.dumps(entry, indent=2)
         st.code(json_output, language='json')
-        # reCAPTCHA form
         form_html = f"""
         <form action="mailto:archwrth@gmail.com" method="post" enctype="text/plain">
           <input type="hidden" name="body" value='{json_output}' />
@@ -155,8 +186,11 @@ def main():
         """
         import streamlit.components.v1 as components
         components.html(form_html, height=200)
-        st.markdown("Alternatively, copy and paste the JSON above into an email to archwrth@gmail.com.")
+        st.markdown(
+            "Alternatively, copy and paste the JSON above into an email to archwrth@gmail.com."
+        )
     else:
         st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
+    main()
