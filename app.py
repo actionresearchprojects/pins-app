@@ -161,8 +161,8 @@ def main():
         'colour': CLIMATE_ZONES[code][1]
     } for code in codes]
 
-    # Coordinates
-    st.markdown("<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>Precise location coordinates</h2>", unsafe_allow_html=True), unsafe_allow_html=True)
+        # Coordinates
+    st.markdown("<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>Precise location coordinates<\/h2>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         lat = st.number_input(
@@ -187,6 +187,25 @@ def main():
         unsafe_allow_html=True
     )
     mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
+    if mask_choice == "Yes":
+        radius_km = st.slider("Select mask radius (km) *", 2, 10, 5, key="radius_slider")
+        mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
+        entry['latitude'], entry['longitude'] = mlat, mlon
+        entry['radiusKm'] = radius_km
+        entry['mask'] = True
+    else:
+        entry['latitude'], entry['longitude'] = lat, lon
+        entry['radiusKm'] = 0
+        entry['mask'] = False
+
+    # Image URL (optional)
+    st.markdown("Image URL (optional — will appear in popup, must start with http:// or https://)", unsafe_allow_html=True)
+    entry['imageUrl'] = st.text_input("", key="image_input", label_visibility="collapsed")
+    if entry['imageUrl'] and not is_valid_url(entry['imageUrl']):
+        st.error("Image URL must start with http:// or https://")
+
+    # Marker colour by type
+    entry['colour'] = "#ffff00" if listing_type == "Project" else "#add8e6"("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
     if mask_choice == "Yes":
         radius_km = st.slider("Select mask radius (km) *", 2, 10, 5, key="radius_slider")
         mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
