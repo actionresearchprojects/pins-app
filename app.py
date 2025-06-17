@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="ARC People & Projects Map Entry Generator 🌍"
 )
 
-# Köppen climate zones with concise official names (no 'climate') and colours
+# Köppen climate zones with concise names and colours
 CLIMATE_ZONES = {
     'Af': ('Tropical rainforest', '#0000fe'),
     'Am': ('Tropical monsoon', '#0078ff'),
@@ -80,40 +80,74 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
 def main():
     st.title("ARC People & Projects Map Entry Generator 🌍")
     entry = {}
-    red_star = "<span style='color:#dc3545'>*</span>"
+    red_star_html = "<span style='color:#dc3545'>*</span>"
 
     # Step 1: Basic Details
-    st.markdown(f"Unique ID {red_star} (e.g. 'house5')", unsafe_allow_html=True)
-    entry['id'] = st.text_input("", key="id_input", label_visibility="hidden")
-    st.markdown(f"Title {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
-    entry['title'] = st.text_input("", key="title_input", label_visibility="hidden")
-    st.markdown("Link URL (optional, must start with http/https)", unsafe_allow_html=True)
-    entry['link'] = st.text_input("", key="link_input", label_visibility="hidden")
+    entry['id'] = st.text_input(
+        label=f"Unique ID {red_star_html} (e.g. 'house5')",
+        max_chars=50,
+        key="id_input",
+        unsafe_allow_html=True
+    )
+    entry['title'] = st.text_input(
+        label=f"Title {red_star_html} (e.g. 'House 5')",
+        key="title_input",
+        unsafe_allow_html=True
+    )
+    entry['link'] = st.text_input(
+        label="Link URL (optional, must start with http/https)",
+        key="link_input",
+        unsafe_allow_html=True
+    )
     if entry['link'] and not is_valid_url(entry['link']):
         st.error("Invalid URL format.")
 
-    # Step 2: Location and Climate Zones
-    st.markdown("Address (for reference)", unsafe_allow_html=True)
-    entry['address'] = st.text_input("", key="address_input", label_visibility="hidden")
-    st.markdown(f"Select between 1 and 3 Köppen zones {red_star}", unsafe_allow_html=True)
-    selected = st.multiselect("", sorted(CLIMATE_ZONES.keys()), key="zones_select", label_visibility="hidden")
-    if len(selected) < 1 or len(selected) > 3:
-        st.error("Please select between 1 and 3 climate zones.")
+    # Step 2: Location and Köppen Zones
+    entry['address'] = st.text_input(
+        label="Address (for reference)",
+        key="address_input",
+        unsafe_allow_html=True
+    )
+    zone_options = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
+    selected_zones = st.multiselect(
+        label=f"Select between 1 and 3 Köppen zones {red_star_html}",
+        options=zone_options,
+        key="zones_select",
+        unsafe_allow_html=True
+    )
+    codes = [opt.split()[-1].strip('()') for opt in selected_zones]
+    if len(codes) < 1 or len(codes) > 3:
+        st.error("Please select between 1 and 3 zones.")
     else:
         entry['zones'] = [{
             'code': code,
             'text': f"{CLIMATE_ZONES[code][0]} ({code})",
             'colour': CLIMATE_ZONES[code][1]
-        } for code in selected]
+        } for code in codes]
 
     # Step 3: Coordinates & GDPR Masking
     col1, col2 = st.columns(2)
     with col1:
-        lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f", key="lat_input")
+        lat = st.number_input(
+            label="Latitude (decimal degrees)",
+            min_value=-90.0,
+            max_value=90.0,
+            format="%.6f",
+            key="lat_input"
+        )
     with col2:
-        lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
-    st.markdown(f"GDPR geomasking required? {red_star}", unsafe_allow_html=True)
-    gdpr = st.radio("", ["Yes", "No"], key="gdpr_radio", label_visibility="hidden")
+        lon = st.number_input(
+            label="Longitude (decimal degrees)",
+            min_value=-180.0,
+            max_value=180.0,
+            format="%.6f",
+            key="lon_input"
+        )
+    gdpr = st.radio(
+        label=f"GDPR geomasking required? {red_star_html}",
+        options=["Yes", "No"],
+        key="gdpr_radio"
+    )
     if gdpr == "Yes":
         mlat, mlon = generate_random_coordinate(lat, lon)
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = mlat, mlon, True, 5
@@ -121,19 +155,28 @@ def main():
         entry['latitude'], entry['longitude'], entry['gdpr'], entry['radiusKm'] = lat, lon, False, 0
 
     # Step 4: Image and Marker
-    st.markdown(f"Marker colour hex {red_star} (e.g. '#FF0000')", unsafe_allow_html=True)
-    entry['colour'] = st.text_input("", key="marker_colour_input", label_visibility="hidden")
+    entry['colour'] = st.text_input(
+        label=f"Marker colour hex {red_star_html} (e.g. '#FF0000')",
+        key="marker_colour_input",
+        unsafe_allow_html=True
+    )
     if entry['colour'] and not HEX_COLOR_RE.match(entry['colour']):
         st.error("Invalid hex colour format.")
 
     # Output JSON
     st.markdown("### ✅ Output JSON")
     link_ok = (not entry['link']) or is_valid_url(entry['link'])
-    mandatory = all([entry.get('id'), entry.get('title'), entry.get('zones'), gdpr in ["Yes", "No"], entry.get('colour')])
+    mandatory = all([
+        entry.get('id'),
+        entry.get('title'),
+        entry.get('zones'),
+        gdpr in ["Yes", "No"],
+        entry.get('colour')
+    ])
     if mandatory and link_ok:
         json_output = json.dumps(entry, indent=2)
         st.code(json_output, language='json')
-        # Embedded form with reCAPTCHA and mailto
+        # reCAPTCHA form
         form_html = f"""
         <form action="mailto:archwrth@gmail.com" method="post" enctype="text/plain">
           <input type="hidden" name="body" value='{json_output}' />
@@ -147,7 +190,6 @@ def main():
         components.html(form_html, height=200)
         st.markdown("Alternatively, copy and paste the JSON above into an email to archwrth@gmail.com.")
     else:
-        st.info("Fill in all required fields (marked *) to generate JSON.")
         st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
