@@ -207,6 +207,10 @@ def main():
     valid_link = (listing_type == "Person") or entry['link'].startswith("https://") or entry['link'] == ""
     valid_image = entry['imageUrl'] == "" or entry['imageUrl'].startswith("http")
     mandatory = all([entry['id'], entry['title'], entry['zones'], mask_choice in ["Yes", "No"], valid_link, valid_image])
+    if not valid_link:
+        st.error("Link must start with https:// or be left blank.")
+    if entry['imageUrl'] and not valid_image:
+        st.error("Image URL must start with https://")
     if mandatory:
         st.code(json.dumps(entry, indent=2), language="json")
         st.markdown(
