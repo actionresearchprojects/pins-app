@@ -95,7 +95,7 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
 
 
 def main():
-    st.title("ARC People & Projects Map Entry Generator 🌍")
+    st.markdown("<h1 style='font-family:Ubuntu; font-size:32px; font-weight:bold'>ARC People & Projects Map Entry Generator 🌍</h1>", unsafe_allow_html=True)
     entry = {}
     red_star = "<span style='color:#dc3545'>*</span>"
 
@@ -162,7 +162,7 @@ def main():
     } for code in codes]
 
     # Coordinates
-    st.markdown("**Precise location coordinates**", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>Precise location coordinates</h2>", unsafe_allow_html=True), unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         lat = st.number_input(
