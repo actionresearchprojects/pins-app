@@ -106,9 +106,9 @@ def main():
     )
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
 
-    # Listing type (default Project)
+        # Listing type (default Project)
     st.markdown(
-        f"<p style='font-size:20px; font-weight:bold'>Are you listing a Project or a Person?</p>",
+        "<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold'>Are you listing a Project or a Person?</h2>",
         unsafe_allow_html=True
     )
     listing_type = st.radio(
@@ -122,126 +122,11 @@ def main():
             f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')",
             unsafe_allow_html=True
         )
-    else:
-        st.markdown(
-            f"Please enter your full name to be displayed publicly. {red_star}",
-            unsafe_allow_html=True
-        )
-    entry['title'] = st.text_input("", key="title_input", label_visibility="collapsed")
-
-    # Link (optional)
-    if listing_type == "Project":
-        st.markdown(
-            "Link to further information you'd like to share (optional, must start with https://, e.g. https://example.com)",
-            unsafe_allow_html=True
-        )
-        entry['link'] = st.text_input("", key="link_input", label_visibility="collapsed")
-        if entry['link'] and not entry['link'].startswith("https://"):
-            st.error("Link must start with https://")
-    else:
-        entry['link'] = "https://actionresearchprojects.framer.website/people"
-
-    # Address/Description
-    st.markdown(
-        "Address/description of location (optional, will be displayed publicly, e.g. iHelp Eco Village, Mkuranga, Tanzania)",
-        unsafe_allow_html=True
-    )
-    entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
-
-    # Climate zones
-    zone_labels = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
-    st.markdown(f"Select up to 3 climate zones {red_star}", unsafe_allow_html=True)
-    selected = st.multiselect("", options=zone_labels, key="zones_select", label_visibility="collapsed")
-    codes = [opt.split()[-1].strip('()') for opt in selected]
-    if len(codes) > 3:
-        st.error("Please select at most 3 climate zones.")
-    entry['zones'] = [{
-        'code': code,
-        'text': f"{CLIMATE_ZONES[code][0]} ({code})",
-        'colour': CLIMATE_ZONES[code][1]
-    } for code in codes]
-
-    # Coordinates
-    st.markdown("<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold'>Precise location coordinates</h2>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        lat = st.number_input(
-            "Latitude (decimal degrees)",
-            -90.0,
-            90.0,
-            format="%.6f",
-            key="lat_input"
-        )
-    with col2:
-        lon = st.number_input(
-            "Longitude (decimal degrees)",
-            -180.0,
-            180.0,
-            format="%.6f",
-            key="lon_input"
-        )
-
-            # Privacy masking
-    st.markdown(
-        f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}",
-        unsafe_allow_html=True
-    )
-    mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
-    if mask_choice == "Yes":
-        # Mask radius selection with red asterisk
-        st.markdown(f"Select mask radius (km) {red_star}", unsafe_allow_html=True)
-        radius_km = st.slider(
-            label="",
-            min_value=2,
-            max_value=10,
-            value=5,
-            step=1,
-            key="mask_radius",
-            help="Distance in km to randomise coordinates"
-        )
-        mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
-        entry['latitude'], entry['longitude'] = mlat, mlon
-        entry['radiusKm'] = radius_km
-        entry['mask'] = True
-    else:
-        entry['latitude'], entry['longitude'] = lat, lon
-        entry['radiusKm'] = 0
-        entry['mask'] = False
-
-    # Image URL (optional) (optional)
-    st.markdown("Image URL (optional, will appear publicly, must start with https://, e.g. https://example.com)", unsafe_allow_html=True)
-    entry['imageUrl'] = st.text_input("", key="image_input", label_visibility="collapsed")
-    if entry['imageUrl'] and not is_valid_url(entry['imageUrl']):
-        st.error("Image URL must start with http:// or https://")
-
-    # Marker colour by type
-    entry['colour'] = "#ffff00" if listing_type == "Project" else "#add8e6"
-
-        # Output
-    st.markdown("### ✅ Output JSON")
-    # Validate link and image
-    valid_link = (listing_type == "Person" or entry['link'] == "" or entry['link'].startswith("https://"))
-    valid_image = (entry['imageUrl'] == "" or is_valid_url(entry['imageUrl']))
-    mandatory_fields = all([
-        entry.get('id'),
-        entry.get('title'),
-        entry.get('zones'),
-        mask_choice in ["Yes", "No"],
-        valid_link,
-        valid_image
-    ])
-    if not valid_link:
-        st.error("Link must start with https:// or be left blank.")
-    if entry['imageUrl'] and not valid_image:
-        st.error("Image URL must start with http:// or https:// or be left blank.")
-    if mandatory_fields:
-        st.code(json.dumps(entry, indent=2), language='json')
-        st.markdown(
-            "<small>For inclusion on the public map, please click the button in the top right corner of the box to copy the text, and email it archwrth@gmail.com.</small>",
-            unsafe_allow_html=True
-        )
-    else:
+        else:
         st.info("Fill in all required fields (marked *) to generate JSON.")
+
+if __name__ == "__main__":
+    main()("Fill in all required fields (marked *) to generate JSON.")
         st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
