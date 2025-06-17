@@ -11,7 +11,7 @@ st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Ubuntu&display=swap');
+    
     * {
         font-family: 'Ubuntu', sans-serif !important;
         font-size: 18px !important;
@@ -181,14 +181,16 @@ def main():
             key="lon_input"
         )
 
-    # Privacy masking
+        # Privacy masking
     st.markdown(
         f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}",
         unsafe_allow_html=True
     )
     mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
     if mask_choice == "Yes":
-        radius_km = st.slider("Select mask radius (km) *", 2, 10, 5, key="mask_radius", help="Distance in km to jitter coordinates")
+        # Mask radius selection with red asterisk
+        st.markdown(f"Select mask radius (km) {red_star}", unsafe_allow_html=True)
+        radius_km = st.slider("", 2, 10, 5, key="mask_radius", help="Distance in km to jitter coordinates")
         mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
         entry['latitude'], entry['longitude'] = mlat, mlon
         entry['radiusKm'] = radius_km
@@ -198,10 +200,10 @@ def main():
         entry['radiusKm'] = 0
         entry['mask'] = False
 
-    # Image URL (optional)
-    st.markdown("Image URL (optional — will appear in popup, must start with http:// or https://)", unsafe_allow_html=True)
+        # Image URL (optional)
+    st.markdown("Image URL (optional, will appear publicly, must start with https://, e.g. https://example.com)", unsafe_allow_html=True)
     entry['imageUrl'] = st.text_input("", key="image_input", label_visibility="collapsed")
-    if entry['imageUrl'] and not is_valid_url(entry['imageUrl']):
+    if entry['imageUrl'] and not is_valid_url(entry['imageUrl']):(entry['imageUrl']):
         st.error("Image URL must start with http:// or https://")
 
     # Marker colour by type
