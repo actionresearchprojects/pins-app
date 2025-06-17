@@ -7,10 +7,11 @@ import re
 # Page configuration
 st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
 
-# Inject custom CSS for Ubuntu font and sizing globally
+# Inject custom CSS for Ubuntu font and sizing globally, disable link styling
 st.markdown(
     """
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Ubuntu&display=swap');
     * {
         font-family: 'Ubuntu', sans-serif !important;
         font-size: 18px !important;
@@ -71,7 +72,7 @@ URL_RE = re.compile(
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Generate jittered coordinate
+# Generate jittered coordinate for masking
 def generate_random_coordinate(lat, lon, radius_m=5000):
     R = 6371000
     lat_rad = math.radians(lat)
@@ -131,7 +132,8 @@ def main():
     # Link (optional)
     if listing_type == "Project":
         st.markdown(
-            "Link to further information you'd like to share (optional, must start with `https://`, e.g. `https://google.com`)"
+            "Link to further information you'd like to share (optional, must start with https://, e.g. https://example.com)",
+            unsafe_allow_html=True
         )
         entry['link'] = st.text_input("", key="link_input", label_visibility="collapsed")
         if entry['link'] and not entry['link'].startswith("https://"):
@@ -141,7 +143,7 @@ def main():
 
     # Address/Description
     st.markdown(
-        "Address/description of location (optional, will be displayed publicly). e.g. iHelp Eco Village, Mkuranga, Tanzania",
+        "Address/description of location (optional, will be displayed publicly, e.g. iHelp Eco Village, Mkuranga, Tanzania)",
         unsafe_allow_html=True
     )
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
