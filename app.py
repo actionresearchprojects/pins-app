@@ -56,7 +56,7 @@ CLIMATE_ZONES = {
 
 HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}){1,2}$')
 URL_RE = re.compile(
-    r'^(https?://)'               # must start with https:// or http://
+    r'^(https?://)'
     r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'
     r'|localhost'
     r'|\d{1,3}(?:\.\d{1,3}){3})'
@@ -95,28 +95,29 @@ def main():
     red_star = "<span style='color:#dc3545'>*</span>"
 
     # Unique ID
-    st.markdown(f"Give your project a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')", unsafe_allow_html=True)
+    st.markdown(f"Please provide a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')", unsafe_allow_html=True)
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
 
-    # Listing type
-    listing_type = st.radio("Are you listing a Person or a Project?", ["Person", "Project"], key="listing_type")
+    # Listing type (default Project)
+    st.markdown(f"<p style='font-size:20px; font-weight:bold'>Are you listing a Project or a Person?</p>", unsafe_allow_html=True)
+    listing_type = st.radio("", ["Project", "Person"], index=0, key="listing_type", label_visibility="collapsed")
     entry['type'] = listing_type
 
     # Title
-    st.markdown(f"This will appear publicly as your project title. {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
+    st.markdown(f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')", unsafe_allow_html=True)
     entry['title'] = st.text_input("", key="title_input", label_visibility="collapsed")
 
-    # Link (conditional)
+    # Link (optional)
     if listing_type == "Project":
-        st.markdown("Link to further information you'd like to share (optional, must start with https://)", unsafe_allow_html=True)
+        st.markdown("Link to further information you'd like to share (optional, must start with https://, e.g. https://google.com)", unsafe_allow_html=True)
         entry['link'] = st.text_input("", key="link_input", label_visibility="collapsed")
         if entry['link'] and not entry['link'].startswith("https://"):
             st.error("Link must start with https://")
     else:
         entry['link'] = "https://actionresearchprojects.framer.website/people"
 
-    # Address
-    st.markdown("Address/Description of Location (optional, will be displayed publicly) (e.g. iHelp Eco Village, Mkuranga, Tanzania)", unsafe_allow_html=True)
+    # Address/Description
+    st.markdown("Address/description of location (optional — will be displayed publicly). For example: iHelp Eco Village, Mkuranga, Tanzania", unsafe_allow_html=True)
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
 
     # Climate zones
@@ -126,16 +127,14 @@ def main():
     codes = [opt.split()[-1].strip('()') for opt in selected]
     if len(codes) > 3:
         st.error("Please select at most 3 climate zones.")
-    entry['zones'] = []
-    for code in codes:
-        entry['zones'].append({
-            'code': code,
-            'text': f"{CLIMATE_ZONES[code][0]} ({code})",
-            'colour': CLIMATE_ZONES[code][1]
-        })
+    entry['zones'] = [{
+        'code': code,
+        'text': f"{CLIMATE_ZONES[code][0]} ({code})",
+        'colour': CLIMATE_ZONES[code][1]
+    } for code in codes]
 
-    # Coordinates header
-    st.markdown("Precise location coordinates", unsafe_allow_html=True)
+    # Coordinates
+    st.markdown("**Precise location coordinates**", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         lat = st.number_input("Latitude (decimal degrees)", -90.0, 90.0, format="%.6f", key="lat_input")
@@ -143,7 +142,7 @@ def main():
         lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
 
     # Privacy masking
-    st.markdown(f"For privacy purposes, you may choose to randomise the publicly shown coordinates in order to mask the location of your building. {red_star}", unsafe_allow_html=True)
+    st.markdown(f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}", unsafe_allow_html=True)
     mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
     if mask_choice == "Yes":
         radius_km = st.slider("Select mask radius (km)", 2, 10, 5, key="radius_slider")
@@ -161,12 +160,12 @@ def main():
 
     # Output
     st.markdown("### ✅ Output JSON")
-    link_ok = listing_type == "Person" or entry['link'].startswith("https://")
+    link_ok = listing_type == "Person" or entry['link'] == "" or entry['link'].startswith("https://")
     mandatory_fields = all([entry.get('id'), entry.get('title'), entry.get('zones'), mask_choice in ["Yes", "No"]])
     if mandatory_fields and link_ok:
         st.code(json.dumps(entry, indent=2), language='json')
         st.markdown(
-            "<small>For inclusion on the public map, please email archwrth@gmail.com or see the ARC SOP for adding new entries.</small>",
+            "<small>For inclusion on the public map, please click the button in the top right corner of the box to copy the text, and email it archwrth@gmail.com.</small>",
             unsafe_allow_html=True
         )
     else:
