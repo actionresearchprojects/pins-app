@@ -157,7 +157,7 @@ def main():
     if entry['colour'] and not HEX_COLOR_RE.match(entry['colour']):
         st.error("Invalid hex colour format.")
 
-    # Output JSON & Email
+    # Output JSON
     st.markdown("### ✅ Output JSON")
     link_ok = (not entry['link']) or is_valid_url(entry['link'])
     mandatory = all([
@@ -166,37 +166,11 @@ def main():
     if mandatory and link_ok:
         json_output = json.dumps(entry, indent=2)
         st.code(json_output, language='json')
-
-        # Centered reCAPTCHA widget and Email button
-        form_html = f"""
-<style>
-  .submit-btn {{
-    background-color: #dc3545;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    font-size: 1em;
-    cursor: pointer;
-    border-radius: 4px;
-  }}
-  .submit-btn:hover {{ opacity: 0.85; }}
-  .recaptcha-wrapper {{ text-align: center; margin: 20px 0; }}
-</style>
-<div class="recaptcha-wrapper">
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-  <div class="g-recaptcha" data-sitekey="{RECAPTCHA_SITE_KEY}"></div>
-  <div style="margin-top:15px;">
-    <a href="mailto:archwrth@gmail.com?subject=Map%20Entry&body={json_output}" class="submit-btn">Email your entry to Archie</a>
-  </div>
-</div>
-"""
-        import streamlit.components.v1 as components
-        components.html(form_html, height=250)
-
         st.markdown(
             "Alternatively, copy and paste the JSON above into an email to archwrth@gmail.com."
         )
     else:
+        st.info("Fill in all required fields (marked *) to generate JSON.")
         st.info("Fill in all required fields (marked *) to generate JSON.")
 
 if __name__ == "__main__":
