@@ -196,9 +196,9 @@ def main():
         st.markdown(f"Select mask radius (km) {red_star}", unsafe_allow_html=True)
         radius_km = st.slider("", 2, 10, 5, key="mask_radius", help="Distance in km to randomise coordinates")
         mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
-        entry.update(latitude=mlat, longitude=mlon, radiusKm=radius_km, mask=True)
+        entry.update(latitude=mlat, longitude=mlon, radiusKm=radius_km, gdpr=True)
     else:
-        entry.update(latitude=lat, longitude=lon, radiusKm=0, mask=False)
+        entry.update(latitude=lat, longitude=lon, radiusKm=0, gdpr=False)
 
     # Image URL
     st.markdown(
