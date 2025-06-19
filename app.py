@@ -209,7 +209,7 @@ def main():
     entry['imageUrl'] = img_val if img_val.startswith("http") else ""
 
     # Marker colour
-    entry['colour'] = "#ffff00" if listing_type == "Project" else "#add8e6"
+    entry['colour'] = "#006400" if listing_type == "Project" else "#add8e6"
 
     # Output JSON
     st.markdown("### ✅ Output JSON")
