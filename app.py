@@ -169,7 +169,7 @@ def main():
     else:
         entry.update(latitude=lat, longitude=lon, radiusKm=0, gdpr=False)
 
- st.markdown(
+    st.markdown(
         """
         Image URL (optional, will appear publicly, must start with https://)<br>
         If your image isn't already hosted online, you can upload it via
