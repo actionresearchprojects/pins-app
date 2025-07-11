@@ -66,9 +66,9 @@ URL_RE = re.compile(
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Now enforces minimum distance of 1km (1000m)
+# Enforce minimum displacement of 1 km from true location
 def generate_random_coordinate(lat, lon, radius_m=5000, min_radius_m=1000):
-    R = 6371000  # Earth's radius in metres
+    R = 6371000  # Earth’s radius in metres
     lat_rad = math.radians(lat)
     d = random.uniform(min_radius_m, radius_m)
     theta = random.uniform(0, 2 * math.pi)
@@ -182,8 +182,6 @@ def main():
     entry['imageUrl'] = img_val if img_val.startswith("http") else ""
 
     entry['colour'] = "#006400" if listing_type == "Project" else "#add8e6"
-    entry['titleHtml'] = f"<div style='white-space: nowrap; font-size: clamp(14px, 3vw, 20px); font-weight: bold;'>{title}</div>"
-    entry['imageHtml'] = f"<div style='text-align: center;'><img src='{entry['imageUrl']}' style='max-width: 100%; height: auto;' /></div>" if entry['imageUrl'] else ""
 
     st.markdown("### ✅ Output JSON")
     valid_link = (listing_type == "Person") or entry['link'].startswith("https://") or entry['link'] == ""
