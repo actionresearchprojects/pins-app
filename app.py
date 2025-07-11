@@ -133,7 +133,7 @@ def main():
     )
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
 
-    st.markdown(f"Select one climate zone {red_star}", unsafe_allow_html=True)
+    st.markdown(f"Select a climate zone {red_star}", unsafe_allow_html=True)
     zone_labels = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
     selected = st.selectbox("", options=[""] + zone_labels, key="zone_select", label_visibility="collapsed")
     if selected:
@@ -169,12 +169,12 @@ def main():
     else:
         entry.update(latitude=lat, longitude=lon, radiusKm=0, gdpr=False)
 
-    st.markdown(
+ st.markdown(
         """
         Image URL (optional, will appear publicly, must start with https://)<br>
         If your image isn't already hosted online, you can upload it via
-        <a href="https://postimages.org/" target="_blank">postimages.org</a>.<br>
-        Just drag and drop your image, then copy the link labelled <b>Direct Link</b> and paste it here.
+        <a href="https://postimages.org/" target="_blank" rel="noopener noreferrer">postimages.org</a>.<br>
+        Just drag and drop your image, then copy the link labelled <strong>Direct Link</strong> and paste it here.
         """,
         unsafe_allow_html=True
     )
