@@ -4,10 +4,8 @@ import math
 import random
 import re
 
-# Page configuration
 st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
 
-# Inject custom CSS for Ubuntu font and sizing globally, disable link styling
 st.markdown(
     """
     <style>
@@ -25,7 +23,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Köppen climate zones with concise names
 CLIMATE_ZONES = {
     'Af': ('Tropical rainforest', '#0000fe'),
     'Am': ('Tropical monsoon', '#0078ff'),
@@ -61,22 +58,19 @@ CLIMATE_ZONES = {
 
 HEX_COLOR_RE = re.compile(r'^#(?:[0-9A-Fa-f]{3}){1,2}$')
 URL_RE = re.compile(
-    r'^(https?://)'               # http:// or https://
-    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}'
-    r'|localhost'
-    r'|\d{1,3}(?:\.\d{1,3}){3})'
-    r'(?::\d+)?'
-    r'(/\S*)?$'
+    r'^(https?://)'
+    r'(([A-Za-z0-9-]+\.)+[A-Za-z]{2,6}|localhost|\d{1,3}(?:\.\d{1,3}){3})'
+    r'(?::\d+)?(/\S*)?$'
 )
 
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Generate jittered coordinate for masking
-def generate_random_coordinate(lat, lon, radius_m=5000):
-    R = 6371000
+# Now enforces minimum distance of 1km (1000m)
+def generate_random_coordinate(lat, lon, radius_m=5000, min_radius_m=1000):
+    R = 6371000  # Earth's radius in metres
     lat_rad = math.radians(lat)
-    d = random.uniform(0, radius_m)
+    d = random.uniform(min_radius_m, radius_m)
     theta = random.uniform(0, 2 * math.pi)
     ang = d / R
     new_lat_rad = math.asin(
@@ -93,91 +87,67 @@ def generate_random_coordinate(lat, lon, radius_m=5000):
     new_lon = ((new_lon + 180) % 360) - 180
     return new_lat, new_lon
 
-
 def main():
-    # Main title
     st.markdown(
         "<h1 style='font-family:Ubuntu; font-size:32px; font-weight:bold;'>"
         "ARC People & Projects Map Entry Generator 🌍</h1>",
         unsafe_allow_html=True
     )
+
     entry = {}
     red_star = "<span style='color:#dc3545'>*</span>"
 
-        # Unique ID
     st.markdown(
         f"Please provide a unique ID for admin purposes only. No caps or spaces. {red_star} (e.g. 'house5')",
         unsafe_allow_html=True
     )
     entry['id'] = st.text_input("", key="id_input", label_visibility="collapsed")
-        # Validate ID format
-    if entry['id']:
-        if not re.match(r'^[a-z0-9_-]+$', entry['id']):
-            st.error("ID must use only lowercase letters, numbers, hyphens or underscores (no spaces or capitals).")
-            valid_id = False
-        else:
-            valid_id = True
-    else:
-        valid_id = False
+    valid_id = bool(entry['id']) and re.match(r'^[a-z0-9_-]+$', entry['id'])
+    if entry['id'] and not valid_id:
+        st.error("ID must use only lowercase letters, numbers, hyphens or underscores.")
 
-    # Listing type
     st.markdown(
         "<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>"
         "Are you listing a Project or a Person?</h2>",
         unsafe_allow_html=True
     )
-    listing_type = st.radio(
-        "", ["Project", "Person"], index=0, key="listing_type", label_visibility="collapsed"
-    )
+    listing_type = st.radio("", ["Project", "Person"], index=0, key="listing_type", label_visibility="collapsed")
     entry['type'] = listing_type
 
-    # Title input
-    if listing_type == "Project":
-        st.markdown(
-            f"Please enter a title to display publicly as your project title. {red_star} (e.g. 'House 5')",
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            f"Please enter your full name to be displayed publicly. {red_star}",
-            unsafe_allow_html=True
-        )
-    entry['title'] = st.text_input("", key="title_input", label_visibility="collapsed")
-
-    # Link input
-    if listing_type == "Project":
-        st.markdown(
-            "Link to further information you'd like to share (optional, must start "
-            "with https://, e.g. https://example.com)",
-            unsafe_allow_html=True
-        )
-        link_val = st.text_input("", key="link_input", label_visibility="collapsed")
-        entry['link'] = link_val if link_val.startswith("https://") else ""
-    else:
-        entry['link'] = "https://actionresearchprojects.framer.website/people"
-
-    # Address/Description
     st.markdown(
-        "Address/description of location (optional, will be displayed publicly, e.g. "
-        "iHelp Eco Village, Mkuranga, Tanzania)",
+        f"{'Please enter a title to display publicly as your project title' if listing_type == 'Project' else 'Please enter your full name to be displayed publicly.'} {red_star}",
         unsafe_allow_html=True
+    )
+    title = st.text_input("", key="title_input", label_visibility="collapsed")
+    entry['title'] = title
+
+    st.markdown(
+        "Link to further information you'd like to share (optional, must start with https://)" if listing_type == "Project"
+        else "", unsafe_allow_html=True
+    )
+    link_val = st.text_input("", key="link_input", label_visibility="collapsed") if listing_type == "Project" else ""
+    entry['link'] = link_val if link_val.startswith("https://") else ("https://actionresearchprojects.framer.website/people" if listing_type == "Person" else "")
+
+    st.markdown(
+        "Address/description of location (optional, will be displayed publicly)", unsafe_allow_html=True
     )
     entry['address'] = st.text_input("", key="address_input", label_visibility="collapsed")
 
-    # Climate zones
-    st.markdown(f"Select up to 3 climate zones {red_star}", unsafe_allow_html=True)
+    st.markdown(f"Select one climate zone {red_star}", unsafe_allow_html=True)
     zone_labels = [f"{name} ({code})" for code, (name, _) in CLIMATE_ZONES.items()]
-    selected = st.multiselect("", options=zone_labels, key="zones_select", label_visibility="collapsed")
-    codes = [opt.split()[-1].strip("()") for opt in selected]
-    entry['zones'] = [
-        { 'code': c, 'text': f"{CLIMATE_ZONES[c][0]} ({c})", 'colour': CLIMATE_ZONES[c][1] }
-        for c in codes
-    ]
+    selected = st.selectbox("", options=[""] + zone_labels, key="zone_select", label_visibility="collapsed")
+    if selected:
+        code = selected.split()[-1].strip("()")
+        entry['zones'] = [{
+            'code': code,
+            'text': f"{CLIMATE_ZONES[code][0]} ({code})",
+            'colour': CLIMATE_ZONES[code][1]
+        }]
+    else:
+        entry['zones'] = []
 
-    # Coordinates
     st.markdown(
-        "<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>" +
-        "Precise location coordinates</h2>",
+        "<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>Precise location coordinates</h2>",
         unsafe_allow_html=True
     )
     col1, col2 = st.columns(2)
@@ -186,32 +156,35 @@ def main():
     with col2:
         lon = st.number_input("Longitude (decimal degrees)", -180.0, 180.0, format="%.6f", key="lon_input")
 
-    # Privacy masking
     st.markdown(
         f"You may opt to randomise your coordinates within a chosen radius for privacy. {red_star}",
         unsafe_allow_html=True
     )
     mask_choice = st.radio("", ["Yes", "No"], key="mask_radio", label_visibility="collapsed")
     if mask_choice == "Yes":
-        st.markdown(f"Select mask radius (km) {red_star}", unsafe_allow_html=True)
-        radius_km = st.slider("", 2, 10, 5, key="mask_radius", help="Distance in km to randomise coordinates")
-        mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000)
+        st.markdown(f"Select mask radius in km (we advise a 5km radius for privacy) {red_star}", unsafe_allow_html=True)
+        radius_km = st.slider("", 2, 10, 5, key="mask_radius")
+        mlat, mlon = generate_random_coordinate(lat, lon, radius_m=radius_km * 1000, min_radius_m=1000)
         entry.update(latitude=mlat, longitude=mlon, radiusKm=radius_km, gdpr=True)
     else:
         entry.update(latitude=lat, longitude=lon, radiusKm=0, gdpr=False)
 
-    # Image URL
     st.markdown(
-        "Image URL (optional, will appear publicly, must start with https://, e.g. https://example.com)",
+        """
+        Image URL (optional, will appear publicly, must start with https://)<br>
+        If your image isn't already hosted online, you can upload it via
+        <a href="https://postimages.org/" target="_blank">postimages.org</a>.<br>
+        Just drag and drop your image, then copy the link labelled <b>Direct Link</b> and paste it here.
+        """,
         unsafe_allow_html=True
     )
     img_val = st.text_input("", key="image_input", label_visibility="collapsed")
     entry['imageUrl'] = img_val if img_val.startswith("http") else ""
 
-    # Marker colour
     entry['colour'] = "#006400" if listing_type == "Project" else "#add8e6"
+    entry['titleHtml'] = f"<div style='white-space: nowrap; font-size: clamp(14px, 3vw, 20px); font-weight: bold;'>{title}</div>"
+    entry['imageHtml'] = f"<div style='text-align: center;'><img src='{entry['imageUrl']}' style='max-width: 100%; height: auto;' /></div>" if entry['imageUrl'] else ""
 
-    # Output JSON
     st.markdown("### ✅ Output JSON")
     valid_link = (listing_type == "Person") or entry['link'].startswith("https://") or entry['link'] == ""
     valid_image = entry['imageUrl'] == "" or entry['imageUrl'].startswith("http")
