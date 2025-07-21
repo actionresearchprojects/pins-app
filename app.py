@@ -126,7 +126,7 @@ def main():
         else "", unsafe_allow_html=True
     )
     link_val = st.text_input("", key="link_input", label_visibility="collapsed") if listing_type == "Project" else ""
-    entry['link'] = link_val if link_val.startswith("https://") else ("https://actionresearchprojects.framer.website/people" if listing_type == "Person" else "")
+    entry['link'] = link_val if link_val.startswith("https://") else ("https://actionresearchprojects.net/people" if listing_type == "Person" else "")
 
     st.markdown(
         "Address/description of location (optional, will be displayed publicly)", unsafe_allow_html=True
