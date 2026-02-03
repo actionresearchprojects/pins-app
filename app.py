@@ -34,24 +34,24 @@ CLIMATE_ZONES = {
     'Csa': ('Hot-summer Mediterranean', '#ffff00'),
     'Csb': ('Warm-summer Mediterranean', '#c7c800'),
     'Csc': ('Cold-summer Mediterranean', '#969600'),
-    'Cwa': ('Monsoon-influenced humid subtropical', '#96ff96'),
+    'Cwa': ('Humid subtropical (dry winter)', '#96ff96'),
     'Cwb': ('Subtropical highland (dry winter)', '#64c865'),
-    'Cwc': ('Subtropical highland (cold)', '#329633'),
+    'Cwc': ('Cold subtropical highland (dry winter)', '#329633'),
     'Cfa': ('Humid subtropical', '#c9ff51'),
-    'Cfb': ('Oceanic', '#65ff51'),
+    'Cfb': ('Temperate oceanic', '#65ff51'),
     'Cfc': ('Subpolar oceanic', '#31c800'),
-    'Dsa': ('Hot-summer humid continental', '#ff00fe'),
-    'Dsb': ('Warm-summer humid continental', '#c900c8'),
-    'Dsc': ('Cold-summer humid continental', '#963295'),
-    'Dsd': ('Extremely cold-summer humid continental', '#963295'),
-    'Dwa': ('Monsoon-influenced humid continental', '#aaafff'),
-    'Dwb': ('Monsoon-influenced warm-summer humid continental', '#5a77db'),
-    'Dwc': ('Monsoon-influenced subarctic', '#4b50b4'),
-    'Dwd': ('Monsoon-influenced extremely cold subarctic', '#320087'),
-    'Dfa': ('Hot-summer humid continental', '#00ffff'),
-    'Dfb': ('Warm-summer humid continental', '#37c8ff'),
+    'Dsa': ('Hot-summer continental (dry summer)', '#ff00fe'),
+    'Dsb': ('Warm-summer continental (dry summer)', '#c900c8'),
+    'Dsc': ('Subarctic (dry summer)', '#963295'),
+    'Dsd': ('Extreme subarctic (dry summer)', '#963295'),
+    'Dwa': ('Hot-summer continental (dry winter)', '#aaafff'),
+    'Dwb': ('Warm-summer continental (dry winter)', '#5a77db'),
+    'Dwc': ('Subarctic (dry winter)', '#4b50b4'),
+    'Dwd': ('Extreme subarctic (dry winter)', '#320087'),
+    'Dfa': ('Hot-summer continental', '#00ffff'),
+    'Dfb': ('Warm-summer continental', '#37c8ff'),
     'Dfc': ('Subarctic', '#007e7d'),
-    'Dfd': ('Extremely cold subarctic', '#00465f'),
+    'Dfd': ('Extreme subarctic', '#00465f'),
     'ET': ('Tundra', '#b2b2b2'),
     'EF': ('Ice cap', '#666666'),
 }
@@ -66,9 +66,9 @@ URL_RE = re.compile(
 def is_valid_url(url):
     return bool(URL_RE.match(url))
 
-# Enforce minimum displacement of 1 km from true location
+# Enforce minimum displacement of 1 km from true location
 def generate_random_coordinate(lat, lon, radius_m=5000, min_radius_m=1000):
-    R = 6371000  # Earth’s radius in metres
+    R = 6371000  # Earth's radius in metres
     lat_rad = math.radians(lat)
     d = random.uniform(min_radius_m, radius_m)
     theta = random.uniform(0, 2 * math.pi)
