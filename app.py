@@ -4,7 +4,7 @@ import math
 import random
 import re
 
-st.set_page_config(page_title="ARC People & Projects Map Entry Generator 🌍")
+st.set_page_config(page_title="ARC People, Projects & Organisations Map Entry Generator 🌍")
 
 st.markdown(
     """
@@ -90,7 +90,7 @@ def generate_random_coordinate(lat, lon, radius_m=5000, min_radius_m=1000):
 def main():
     st.markdown(
         "<h1 style='font-family:Ubuntu; font-size:32px; font-weight:bold;'>"
-        "ARC People & Projects Map Entry Generator 🌍</h1>",
+        "ARC People, Projects & Organisations Map Entry Generator 🌍</h1>",
         unsafe_allow_html=True
     )
 
@@ -108,16 +108,18 @@ def main():
 
     st.markdown(
         "<h2 style='font-family:Ubuntu; font-size:24px; font-weight:bold;'>"
-        "Are you listing a Project or a Person?</h2>",
+        "Are you listing a Project, a Person, or an Organisation?</h2>",
         unsafe_allow_html=True
     )
-    listing_type = st.radio("", ["Project", "Person"], index=0, key="listing_type", label_visibility="collapsed")
+    listing_type = st.radio("", ["Project", "Person", "Organisation"], index=0, key="listing_type", label_visibility="collapsed")
     entry['type'] = listing_type
 
-    st.markdown(
-        f"{'Please enter a title to display publicly as your project title' if listing_type == 'Project' else 'Please enter your full name to be displayed publicly.'} {red_star}",
-        unsafe_allow_html=True
-    )
+    title_prompt = {
+        "Project": "Please enter a title to display publicly as your project title",
+        "Person": "Please enter your full name to be displayed publicly.",
+        "Organisation": "Please enter your organisation name to be displayed publicly.",
+    }
+    st.markdown(f"{title_prompt[listing_type]} {red_star}", unsafe_allow_html=True)
     title = st.text_input("", key="title_input", label_visibility="collapsed")
     entry['title'] = title
 
@@ -126,7 +128,7 @@ def main():
         else "", unsafe_allow_html=True
     )
     link_val = st.text_input("", key="link_input", label_visibility="collapsed") if listing_type == "Project" else ""
-    entry['link'] = link_val if link_val.startswith("https://") else ("https://actionresearchprojects.net/people" if listing_type == "Person" else "")
+    entry['link'] = link_val if link_val.startswith("https://") else ("https://actionresearchprojects.net/people" if listing_type in ("Person", "Organisation") else "")
 
     st.markdown(
         "Address/description of location (optional, will be displayed publicly)", unsafe_allow_html=True
@@ -181,10 +183,11 @@ def main():
     img_val = st.text_input("", key="image_input", label_visibility="collapsed")
     entry['imageUrl'] = img_val if img_val.startswith("http") else ""
 
-    entry['colour'] = "#006400" if listing_type == "Project" else "#0db8b8"
+    pin_colours = {"Project": "#006400", "Person": "#0db8b8", "Organisation": "#e6b800"}
+    entry['colour'] = pin_colours[listing_type]
 
     st.markdown("### ✅ Output JSON")
-    valid_link = (listing_type == "Person") or entry['link'].startswith("https://") or entry['link'] == ""
+    valid_link = (listing_type in ("Person", "Organisation")) or entry['link'].startswith("https://") or entry['link'] == ""
     valid_image = entry['imageUrl'] == "" or entry['imageUrl'].startswith("http")
     mandatory = all([entry['id'], entry['title'], entry['zones'], mask_choice in ["Yes", "No"], valid_link, valid_image])
     if not valid_link:
