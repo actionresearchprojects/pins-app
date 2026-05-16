@@ -181,7 +181,7 @@ def main():
     img_val = st.text_input("", key="image_input", label_visibility="collapsed")
     entry['imageUrl'] = img_val if img_val.startswith("http") else ""
 
-    entry['colour'] = "#006400" if listing_type == "Project" else "#add8e6"
+    entry['colour'] = "#006400" if listing_type == "Project" else "#0db8b8"
 
     st.markdown("### ✅ Output JSON")
     valid_link = (listing_type == "Person") or entry['link'].startswith("https://") or entry['link'] == ""
